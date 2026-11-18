@@ -19,7 +19,7 @@ class TelegramBoundaryTests(unittest.TestCase):
             from telegram_service.app import mcp
             catalog = asyncio.run(mcp.list_tools())
             self.assertEqual({t.name for t in catalog},
-                             {"list_destinations", "telegram_send", "telegram_upsert_summary"})
+                             {"list_destinations", "telegram_send", "telegram_upsert_summary", "send_telegram"})
             self.assertFalse(any(s == "gateway" or s.startswith("gateway.")
                                  for s in sys.modules))
         finally:
