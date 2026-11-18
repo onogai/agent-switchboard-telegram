@@ -16,6 +16,13 @@ import sys
 from tempfile import TemporaryDirectory
 
 from cryptography.fernet import Fernet, InvalidToken
+
+# Invoking "python3 scripts/preflight_sqlite.py" puts scripts/ rather than the
+# repository root on sys.path. Resolve the local package from this file, not
+# the caller's working directory or an externally supplied PYTHONPATH.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
+
 from telegram_service.store import Store
 
 # Existing columns are retained byte-for-byte except these explicit migrations:
@@ -49,8 +56,17 @@ def verify_integrity(db: sqlite3.Connection) -> None:
 
 def audit(source: Path, encryption_key: str) -> dict[str, int]:
     source = source.expanduser().absolute()
-    if not source.is_file() or source.is_symlink():
-        raise RuntimeError("Input must be an existing regular SQLite database, not a symlink")
+    try:
+        if not source.is_file() or source.is_symlink():
+            raise RuntimeError("Input must be an existing regular SQLite database, not a symlink")
+        if not os.access(source, os.R_OK):
+            raise RuntimeError("Source SQLite is not readable by this user; check file and parent directory permissions")
+        for suffix in ("-wal", "-shm"):
+            sidecar = Path(str(source) + suffix)
+            if sidecar.exists() and not os.access(sidecar, os.R_OK):
+                raise RuntimeError("Existing SQLite WAL/SHM sidecar is not readable by this user")
+    except PermissionError:
+        raise RuntimeError("Source SQLite or its parent directory cannot be accessed by this user") from None
     if not encryption_key:
         raise RuntimeError("TELEGRAM_ENCRYPTION_KEY is required")
     cipher = Fernet(encryption_key.encode("ascii"))

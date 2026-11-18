@@ -1,5 +1,8 @@
 """Regression tests for a non-destructive Telegram SQLite cutover preflight."""
 import importlib.util
+import os
+import subprocess
+import sys
 import sqlite3
 import tempfile
 import unittest
@@ -31,6 +34,18 @@ class TelegramPreflightTests(unittest.TestCase):
         self.assertEqual(1, result["destinations"])
         self.assertEqual(before, self.path.read_bytes())
 
+    def test_direct_cli_works_without_pythonpath_from_other_cwd(self):
+        env = dict(os.environ)
+        env.pop("PYTHONPATH", None)
+        env["TELEGRAM_ENCRYPTION_KEY"] = self.key
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--db", str(self.path)],
+            cwd=self.temp.name, env=env, capture_output=True, text=True,
+            timeout=20, check=False)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("PASS Telegram SQLite", result.stdout)
+        self.assertNotIn("sensitive-bot-token", result.stdout)
+
     def test_wrong_decryption_key_fails_safely(self):
         with self.assertRaisesRegex(RuntimeError, "cannot be decrypted"):
             preflight.audit(self.path, Fernet.generate_key().decode())
@@ -51,6 +66,16 @@ class TelegramPreflightTests(unittest.TestCase):
         sqlite3.connect(other).close()
         with self.assertRaisesRegex(RuntimeError, "expected Telegram tables"):
             preflight.audit(other, self.key)
+
+    def test_unreadable_source_reports_permission_cause(self):
+        if os.geteuid() == 0:
+            self.skipTest("root can read mode-000 files")
+        self.path.chmod(0o000)
+        try:
+            with self.assertRaisesRegex(RuntimeError, "not readable by this user"):
+                preflight.audit(self.path, self.key)
+        finally:
+            self.path.chmod(0o600)
 
     def test_missing_source_fails_closed(self):
         with self.assertRaisesRegex(RuntimeError, "existing regular SQLite"):
