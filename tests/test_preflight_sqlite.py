@@ -1,5 +1,8 @@
 """Regression tests for a non-destructive Telegram SQLite cutover preflight."""
 import importlib.util
+import os
+import subprocess
+import sys
 import sqlite3
 import tempfile
 import unittest
@@ -30,6 +33,18 @@ class TelegramPreflightTests(unittest.TestCase):
         self.assertEqual(1, result["bots"])
         self.assertEqual(1, result["destinations"])
         self.assertEqual(before, self.path.read_bytes())
+
+    def test_direct_cli_works_without_pythonpath_from_other_cwd(self):
+        env = dict(os.environ)
+        env.pop("PYTHONPATH", None)
+        env["TELEGRAM_ENCRYPTION_KEY"] = self.key
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--db", str(self.path)],
+            cwd=self.temp.name, env=env, capture_output=True, text=True,
+            timeout=20, check=False)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("PASS Telegram SQLite", result.stdout)
+        self.assertNotIn("sensitive-bot-token", result.stdout)
 
     def test_wrong_decryption_key_fails_safely(self):
         with self.assertRaisesRegex(RuntimeError, "cannot be decrypted"):
