@@ -1,0 +1,41 @@
+# Production ownership of Telegram only. NOT the staging compose.yaml.
+# Use a dedicated project name, e.g. -p nogai-telegram-standalone.
+# Do not run while the original nogai-telegram-delivery container exists.
+# No other Switchboard service is owned by this manifest.
+services:
+  telegram-delivery:
+    image: ${TELEGRAM_IMAGE:-nogai-telegram-delivery:cutover-candidate}
+    container_name: nogai-telegram-delivery
+    user: "10001:10001"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+    env_file:
+      - ${TELEGRAM_ENV_FILE:?Set the absolute path to the private Telegram-only env file}
+    environment:
+      TELEGRAM_DB_PATH: /data/telegram.sqlite3
+    volumes:
+      - ${TELEGRAM_STATE_DIR:?Set the existing absolute Telegram SQLite state directory}:/data
+    networks:
+      gateway:
+        aliases:
+          - telegram-delivery
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,noexec,size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8781/health',timeout=2).read()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+networks:
+  gateway:
+    external: true
+    name: ${TELEGRAM_GATEWAY_NETWORK:-nogai-mcp-homelab_default}
