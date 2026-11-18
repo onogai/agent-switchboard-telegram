@@ -71,12 +71,29 @@ async def telegram_upsert_summary(destination: str, key: str, text: str,
     return await asyncio.to_thread(delivery_service().summary, destination, key, text, pin)
 
 
+async def send_telegram(message: str) -> str:
+    """Legacy Gateway-compatible one-message send to a configured default destination."""
+    if not message or not message.strip():
+        raise ValueError("Message must not be empty.")
+    if len(message) > 4096:
+        raise ValueError("Message must be at most 4096 characters.")
+    destination = os.environ.get("TELEGRAM_DEFAULT_DESTINATION", "").strip()
+    if not destination:
+        raise RuntimeError("TELEGRAM_DEFAULT_DESTINATION must refer to an enabled destination.")
+    delivery = await telegram_send(destination, message)
+    if delivery.get("status") != "accepted" or len(delivery.get("message_ids", [])) != 1:
+        raise RuntimeError("Telegram did not confirm a single accepted message.")
+    return f"Telegram message sent (ID: {delivery['message_ids'][0]})."
+
+
 mcp = FastMCP("Telegram Delivery")
 mcp.tool(list_destinations, annotations=ToolAnnotations(
     read_only_hint=True, destructive_hint=False, open_world_hint=False))
 mcp.tool(telegram_send, annotations=ToolAnnotations(
     read_only_hint=False, destructive_hint=True, open_world_hint=False))
 mcp.tool(telegram_upsert_summary, annotations=ToolAnnotations(
+    read_only_hint=False, destructive_hint=True, open_world_hint=False))
+mcp.tool(send_telegram, annotations=ToolAnnotations(
     read_only_hint=False, destructive_hint=True, open_world_hint=False))
 
 
