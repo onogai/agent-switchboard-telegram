@@ -20,7 +20,7 @@ from telegram_service.store import Store
 
 # Existing columns are retained byte-for-byte except these explicit migrations:
 # historical idempotency_key becomes binding-scoped; new columns are added.
-EXCLUDED_LEGACY_COLUMNS = {"deliveries": {"idempotency_key"}}
+EXCLUDED_LEGACY_COLUMNS = {\n    "deliveries": {"idempotency_key", "binding_id", "bot_id", "chat_id",\n                   "logical_idempotency_key"},\n    "destinations": {"binding_id"},\n}
 
 
 def tables(db: sqlite3.Connection) -> set[str]:
