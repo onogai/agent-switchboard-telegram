@@ -20,7 +20,11 @@ from telegram_service.store import Store
 
 # Existing columns are retained byte-for-byte except these explicit migrations:
 # historical idempotency_key becomes binding-scoped; new columns are added.
-EXCLUDED_LEGACY_COLUMNS = {\n    "deliveries": {"idempotency_key", "binding_id", "bot_id", "chat_id",\n                   "logical_idempotency_key"},\n    "destinations": {"binding_id"},\n}
+EXCLUDED_LEGACY_COLUMNS = {
+    "deliveries": {"idempotency_key", "binding_id", "bot_id", "chat_id",
+                   "logical_idempotency_key"},
+    "destinations": {"binding_id"},
+}
 
 
 def tables(db: sqlite3.Connection) -> set[str]:
@@ -34,7 +38,8 @@ def fingerprint(db: sqlite3.Connection, table: str, columns: list[str]) -> str:
     quoted = ", ".join('"' + col.replace('"', '""') + '"' for col in columns)
     rows = [json.dumps(tuple(row), ensure_ascii=False, separators=(",", ":"), default=str)
             for row in db.execute(f'SELECT {quoted} FROM "{table}"')]
-    payload = "\n".join(sorted(rows))
+    payload = "
+".join(sorted(rows))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
