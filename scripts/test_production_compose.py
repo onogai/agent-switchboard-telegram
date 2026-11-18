@@ -20,8 +20,8 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="telegram-compose-test-") as tmp:
         root = Path(tmp)
         env_file = root / "telegram.env"
-        env_file.write_text("TELEGRAM_ENCRYPTION_KEY=test-key-not-real\\n"
-                            "TELEGRAM_ADMIN_TOKEN=test-token-not-real\\n")
+        env_file.write_text("TELEGRAM_ENCRYPTION_KEY=test-key-not-real\n"
+                            "TELEGRAM_ADMIN_TOKEN=test-token-not-real\n")
         state = root / "state"
         state.mkdir()
         env = {
