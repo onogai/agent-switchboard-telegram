@@ -9,6 +9,7 @@ services:
       TELEGRAM_DB_PATH: /data/telegram.sqlite3
       TELEGRAM_ENCRYPTION_KEY: ${TELEGRAM_ENCRYPTION_KEY:?Required}
       TELEGRAM_ADMIN_TOKEN: ${TELEGRAM_ADMIN_TOKEN:?Required}
+      TELEGRAM_DEFAULT_DESTINATION: ${TELEGRAM_DEFAULT_DESTINATION:-}
     volumes:
       - ./state:/data
     networks: [addons]
