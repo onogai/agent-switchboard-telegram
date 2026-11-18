@@ -16,6 +16,13 @@ import sys
 from tempfile import TemporaryDirectory
 
 from cryptography.fernet import Fernet, InvalidToken
+
+# Invoking "python3 scripts/preflight_sqlite.py" puts scripts/ rather than the
+# repository root on sys.path. Resolve the local package from this file, not
+# the caller's working directory or an externally supplied PYTHONPATH.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
+
 from telegram_service.store import Store
 
 # Existing columns are retained byte-for-byte except these explicit migrations:
