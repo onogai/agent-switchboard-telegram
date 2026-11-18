@@ -72,10 +72,11 @@ up/down or `--remove-orphans` on the live stack. The historical
 2. Verify whether the new image has the same `/mcp/`, `/internal/*`,
    health and tool contracts as the running service; use isolated tests and
    never probe by sending a live message.
-3. Check the SQLite schema and data migration behavior on a **consistent,
-   separate copy** of the live database (including WAL if applicable).
-   Back up the stable encryption key, original bot bindings, destinations,
-   idempotency records and summaries without exposing secret values.
+3. Check SQLite migration with the offline preflight below. It uses SQLite's
+   online backup API to create a consistent **temporary copy**, validates the
+   encryption key, applies current schema migrations only to the copy, and
+   compares pre-/post-migration protected row data. Retain a separate durable
+   matched backup (including rollback image/config and the original key).
 4. Verify the service's container UID/GID can access the existing state,
    and preserve the exact original `TELEGRAM_ENCRYPTION_KEY`,
    `TELEGRAM_ADMIN_TOKEN`, mounted paths, DNS name and network aliases.
@@ -94,3 +95,28 @@ Run `bash scripts/test.sh`. It builds an isolated image and runs
 `tests/test_*.py` with network disabled and no mounted production state.
 This validates outbound, management and regression behavior without live
 Telegram access.
+
+
+## Read-only database migration preflight
+
+From the **Telegram repository checkout on the Docker host**, with the existing
+key supplied through the private environment (never print or paste the key):
+
+```bash
+# Run with permission to read the existing SQLite and its WAL:
+python3 scripts/preflight_sqlite.py \
+  --db /home/onogai/nogai-mcp-homelab/state/telegram/telegram.sqlite3
+```
+
+This reads the specified database with SQLite `mode=ro`, creates an online
+consistent snapshot in a private temporary directory, then runs the current
+`Store.initialize()` migration **only on that snapshot**. It verifies SQLite
+integrity, decrypts every bot token (without printing it), and checks that
+protected historical records and row counts survive. The temporary copy is
+deleted at exit. It does not contact Telegram, send a message, start Docker
+services or change the production DB.
+
+The preflight intentionally does **not** prove Docker image parity,
+network/DNS compatibility, Manager proxy routing or the live container's
+mounts/UID. Confirm those separately before a targeted deployment. Do not
+display environment variables containing encryption keys or service tokens.
