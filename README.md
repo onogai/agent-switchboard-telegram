@@ -53,8 +53,10 @@ normally inactive profile. Do not use this repository's staging Compose to
 recreate the live Telegram container, mount live state during tests, or
 perform global `docker compose up/down --remove-orphans`.
 
-See [TECHNICAL.md](TECHNICAL.md) for security, data preservation and a
-non-destructive cutover checklist.
+See [TECHNICAL.md](TECHNICAL.md) for security and data preservation.
+For the independent production deployment manifest and guarded handoff,
+see [PRODUCTION_CUTOVER.md](PRODUCTION_CUTOVER.md). Do not run the cutover
+section without explicit operator approval.
 
 ## Verification
 
