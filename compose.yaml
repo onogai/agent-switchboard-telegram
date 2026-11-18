@@ -1,0 +1,28 @@
+# Staging Compose; no public ports. Join the Gateway via an explicitly shared
+# private Docker network. Never run against the production state volume for tests.
+services:
+  telegram:
+    build: .
+    image: agent-switchboard-telegram:local
+    restart: unless-stopped
+    environment:
+      TELEGRAM_DB_PATH: /data/telegram.sqlite3
+      TELEGRAM_ENCRYPTION_KEY: ${TELEGRAM_ENCRYPTION_KEY:?Required}
+      TELEGRAM_ADMIN_TOKEN: ${TELEGRAM_ADMIN_TOKEN:?Required}
+    volumes:
+      - ./state:/data
+    networks: [addons]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8781/health', timeout=2).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  addons:
+    external: true
+    name: ${SWITCHBOARD_ADDONS_NETWORK:-switchboard_addons}
