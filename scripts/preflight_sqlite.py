@@ -38,8 +38,7 @@ def fingerprint(db: sqlite3.Connection, table: str, columns: list[str]) -> str:
     quoted = ", ".join('"' + col.replace('"', '""') + '"' for col in columns)
     rows = [json.dumps(tuple(row), ensure_ascii=False, separators=(",", ":"), default=str)
             for row in db.execute(f'SELECT {quoted} FROM "{table}"')]
-    payload = "
-".join(sorted(rows))
+    payload = "\n".join(sorted(rows))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
