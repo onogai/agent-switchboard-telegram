@@ -15,7 +15,7 @@ from starlette.routing import Mount, Route
 
 from .bot_api import BotApiError
 from .discovery import ChatDiscovery
-from .service import TelegramDelivery
+from .service import TelegramDelivery, units
 from .store import DeliveryError, Store
 
 _service: TelegramDelivery | None = None
@@ -75,8 +75,8 @@ async def send_telegram(message: str) -> str:
     """Legacy Gateway-compatible one-message send to a configured default destination."""
     if not message or not message.strip():
         raise ValueError("Message must not be empty.")
-    if len(message) > 4096:
-        raise ValueError("Message must be at most 4096 characters.")
+    if len(message) > 4096 or units(message) > 4096:
+        raise ValueError("Message must be at most 4096 characters / UTF-16 units.")
     destination = os.environ.get("TELEGRAM_DEFAULT_DESTINATION", "").strip()
     if not destination:
         raise RuntimeError("TELEGRAM_DEFAULT_DESTINATION must refer to an enabled destination.")
