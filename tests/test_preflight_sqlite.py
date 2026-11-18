@@ -67,6 +67,16 @@ class TelegramPreflightTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "expected Telegram tables"):
             preflight.audit(other, self.key)
 
+    def test_unreadable_source_reports_permission_cause(self):
+        if os.geteuid() == 0:
+            self.skipTest("root can read mode-000 files")
+        self.path.chmod(0o000)
+        try:
+            with self.assertRaisesRegex(RuntimeError, "not readable by this user"):
+                preflight.audit(self.path, self.key)
+        finally:
+            self.path.chmod(0o600)
+
     def test_missing_source_fails_closed(self):
         with self.assertRaisesRegex(RuntimeError, "existing regular SQLite"):
             preflight.audit(Path(self.temp.name) / "missing.sqlite3", self.key)
