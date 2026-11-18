@@ -8,3 +8,6 @@ docker run --rm --network none --entrypoint python \
   --mount "type=bind,src=$PWD/scripts,dst=/app/scripts,readonly" \
   switchboard-telegram-test:local \
   -m unittest discover -s /app/tests -p 'test_*.py' -v
+
+# Validate separate production Compose structurally with disposable placeholders only.
+python3 scripts/test_production_compose.py
