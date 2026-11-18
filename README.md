@@ -5,3 +5,5 @@ Standalone Telegram Delivery + MCP HTTP add-on extracted from Switchboard. The a
 Build: `docker build -t switchboard-telegram .`. State is controlled by `TELEGRAM_DB_PATH` and `TELEGRAM_ENCRYPTION_KEY`; do not expose service or management endpoints publicly. Before cutover preserve existing database, encryption key, bot bindings, chat IDs and webhook/poll state.
 
 **Migration pending:** Gateway must be reconfigured to route legacy `send_telegram` separately; the existing `telegramhub` public tools are not the same as the old single-message tool.
+
+Legacy compatibility: `send_telegram(message)` uses `TELEGRAM_DEFAULT_DESTINATION`, which must name an enabled destination. It preserves the old single-message result format; no default is guessed.
