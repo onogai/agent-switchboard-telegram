@@ -1,59 +1,40 @@
 # Switchboard Telegram Delivery
 
-Independent Telegram Delivery add-on with its own SQLite state, encrypted bot
-tokens, bot/chat discovery, named destinations and private HTTP management API.
-The same image exposes MCP tools for sending messages and maintaining a daily
-pinned summary. No Gateway or Task Queue Python packages are required.
+Independent Telegram add-on with its own SQLite state, encrypted bot tokens,
+bot/chat discovery, named destinations, private management API and HTTP MCP.
+No Gateway or Queue Python package is required.
 
-## Architecture
+## Endpoints and security
 
-- HTTP MCP: `http://telegram-delivery:8781/mcp/` on a **private** Docker network.
-- Private management API: `/internal/*`, authenticated by a strong
-  `TELEGRAM_ADMIN_TOKEN`.
-- Health probe: `/health`.
-- SQLite: `TELEGRAM_DB_PATH` (default `/data/telegram.sqlite3`).
-- Token encryption: `TELEGRAM_ENCRYPTION_KEY` (stable Fernet key).
-- Docker image: built from this repository's `Dockerfile`.
+- Private MCP: `http://telegram-delivery:8781/mcp/`
+- Private management API: `/internal/*`, authenticated by
+  `TELEGRAM_ADMIN_TOKEN`
+- Health: `/health`
+- SQLite: `TELEGRAM_DB_PATH` (default `/data/telegram.sqlite3`)
+- Bot token encryption: `TELEGRAM_ENCRYPTION_KEY` (stable Fernet key)
 
 MCP tools: `list_destinations`, `telegram_send`,
-`telegram_upsert_summary`, and optional legacy-compatible
-`send_telegram`. The legacy tool requires an explicitly configured
-`TELEGRAM_DEFAULT_DESTINATION`; it is not automatically registered or
-granted by Gateway.
+`telegram_upsert_summary`, and optional compatibility alias
+`send_telegram` (requires explicit `TELEGRAM_DEFAULT_DESTINATION`).
+Modern Gateway uses the `telegramhub` Registry source; its public names,
+OAuth, approvals and grants remain Core responsibilities.
 
-The modern Gateway uses the `telegramhub` source, not its removed
-`telegram/send_telegram` implementation. Public MCP names, approvals,
-grants and OAuth remain Gateway responsibilities.
+## Functionality
 
-## Features
+- Store bot credentials encrypted; enable/disable bots and discover chats
+  through polling (a webhook may block polling).
+- Approve chats, map them to destinations and manage rebindings.
+- Idempotent outbound sends and uncertain-outcome diagnostics; never
+  blindly retry a potentially accepted Telegram API send.
+- Maintain a daily pinned summary and retry pinning without duplicating it.
+- Manage bot/destination/delivery metadata from the private Manager proxy.
 
-- Register encrypted bot credentials; enable/disable bots.
-- Poll Telegram updates for chat discovery, without storing message bodies.
-  A configured webhook can block polling; the receiver reports this state.
-- Approve discovered chats and map them to named destinations; safely rebind
-  or delete destinations with binding checks and archived summary records.
-- Idempotent outbound delivery keyed to a destination binding; distinguish
-  accepted, failed, unknown and partial outcomes. Do not blindly retry an
-  uncertain Telegram API send.
-- Create/edit a summary under a stable key, optionally pin it.
-  Pin failures can be retried independently without resending the summary.
-- Manage bots, destinations, discovered chats, deliveries and summary pin
-  diagnostics through the private API used by Switchboard Manager.
+## Deployment
 
-## Production
+See [PRODUCTION.md](PRODUCTION.md) for the current independent Compose
+deployment, state ownership and commands. Staging `compose.yaml` uses
+a disposable `./state` directory and is not production.
 
-Telegram is already deployed independently from Gateway. See
-[PRODUCTION.md](PRODUCTION.md) for the host's persistent private paths,
-Compose commands and state-preserving relocation. The earlier
-[PRODUCTION_CUTOVER.md](PRODUCTION_CUTOVER.md) describes the initial
-ownership migration and historical directory paths.
-
-Do not run the staging `compose.yaml` against production state or start a
-second Telegram receiver. Keep the encryption key and SQLite backup paired.
-
-## Verification
-
-Run `bash scripts/test.sh` to build and test a disposable isolated image.
-CI runs the same script without a Telegram bot, live token or production DB.
-The staging `compose.yaml` uses its own `./state` and the private addons
-network; it is **not** the production deployment manifest.
+Run `bash scripts/test.sh` for disposable Docker tests and Compose
+validation. Never expose MCP or the private management API to the
+public Internet or start simultaneous Telegram receivers for one bot.
