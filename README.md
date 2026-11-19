@@ -40,23 +40,16 @@ grants and OAuth remain Gateway responsibilities.
 - Manage bots, destinations, discovered chats, deliveries and summary pin
   diagnostics through the private API used by Switchboard Manager.
 
-## Production status
+## Production
 
-The modular Core/Task Queue cutover completed on **18 November 2026**.
-Telegram Delivery is already running as an independent service using its
-existing image and persistent SQLite directory. **Its separate repository
-has not yet taken ownership of production deployment.** That is a
-separate, targeted cutover with image and database compatibility checks.
+Telegram is already deployed independently from Gateway. See
+[PRODUCTION.md](PRODUCTION.md) for the host's persistent private paths,
+Compose commands and state-preserving relocation. The earlier
+[PRODUCTION_CUTOVER.md](PRODUCTION_CUTOVER.md) describes the initial
+ownership migration and historical directory paths.
 
-The Core production Compose intentionally keeps Telegram under an optional,
-normally inactive profile. Do not use this repository's staging Compose to
-recreate the live Telegram container, mount live state during tests, or
-perform global `docker compose up/down --remove-orphans`.
-
-See [TECHNICAL.md](TECHNICAL.md) for security and data preservation.
-For the independent production deployment manifest and guarded handoff,
-see [PRODUCTION_CUTOVER.md](PRODUCTION_CUTOVER.md). Do not run the cutover
-section without explicit operator approval.
+Do not run the staging `compose.yaml` against production state or start a
+second Telegram receiver. Keep the encryption key and SQLite backup paired.
 
 ## Verification
 
