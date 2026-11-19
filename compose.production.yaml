@@ -1,11 +1,11 @@
-# Production ownership of Telegram only. NOT the staging compose.yaml.
-# Use a dedicated project name, e.g. -p nogai-telegram-standalone.
-# Do not run while the original nogai-telegram-delivery container exists.
-# No other Switchboard service is owned by this manifest.
+# Independent production Telegram Delivery. NOT the staging compose.yaml.
+# Keep the stable DNS alias telegram-delivery for Gateway/Manager.
+# Never start this service while the previous receiver is running.
+name: switchboard-telegram
 services:
   telegram-delivery:
-    image: ${TELEGRAM_IMAGE:-nogai-telegram-delivery:cutover-candidate}
-    container_name: nogai-telegram-delivery
+    image: ${TELEGRAM_IMAGE:-switchboard-telegram:production}
+    container_name: switchboard-telegram-delivery
     user: "10001:10001"
     restart: unless-stopped
     logging:
@@ -38,4 +38,4 @@ services:
 networks:
   gateway:
     external: true
-    name: ${TELEGRAM_GATEWAY_NETWORK:-nogai-mcp-homelab_default}
+    name: ${TELEGRAM_GATEWAY_NETWORK:?Set the existing Gateway network name}

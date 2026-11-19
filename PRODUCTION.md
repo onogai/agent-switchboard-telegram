@@ -1,55 +1,79 @@
 # Production operations
 
-Telegram Delivery is deployed as an independent Compose project,
-`nogai-telegram-standalone`. The service is reachable from Gateway/Manager
-through `http://telegram-delivery:8781` on the existing private network.
+Telegram Delivery owns one independent Docker Compose project,
+`switchboard-telegram`, with one container, `switchboard-telegram-delivery`,
+and one image tag, `switchboard-telegram:production`.
 
-The initial ownership cutover is complete. A subsequent host-directory
-cleanup migrates the **same** encrypted SQLite state and private runtime
-credentials outside the former monolithic checkout. It must not rotate the
-Fernet key or management token.
+Gateway and Manager continue to reach it through the **unchanged** private
+Docker DNS alias `telegram-delivery:8781`. The existing external Docker
+network is deliberately not renamed: other live services use it.
 
-## Local private Compose paths
+## One-time rename from the previous production deployment
 
-The host's `.env.production` is not tracked by Git and contains paths,
-the network name and the current image tag, but no secret values:
+After pulling this repository, run:
+
+```bash
+cd ~/agent-switchboard-telegram
+git pull --ff-only
+python3 scripts/rename_production_service.py
+```
+
+This one-time command:
+
+- Validates the existing Compose owner, running container, SQLite bind mount,
+  private runtime env and external network.
+- Retags the **same image ID** without rebuilding.
+- Changes only `TELEGRAM_IMAGE` in the local `.env.production`.
+- Stops the previous receiver before creating the new one, so only one
+  process can poll Telegram.
+- Archives a stopped-state copy of the SQLite directory and private runtime
+  settings under `~/switchboard-cutover-backups/`.
+- Starts the new Compose owner, waits for health and verifies image identity,
+  state path, credentials, private DNS and Core connectivity.
+- Restarts the original receiver and restores `.env.production` if cutover
+  fails. The original container is removed **only after** verification.
+
+No bot token, encryption key, or SQLite database is rotated or recreated.
+Do not manually run the new Compose service alongside the previous receiver.
+
+## Private host configuration
+
+`.env.production` is not committed to Git. It retains the current real
+paths and existing external network name, for example:
 
 ```dotenv
 TELEGRAM_ENV_FILE=/home/onogai/service-data/secrets/telegram.env
 TELEGRAM_STATE_DIR=/home/onogai/service-data/telegram
-TELEGRAM_GATEWAY_NETWORK=nogai-mcp-homelab_default
-TELEGRAM_IMAGE=nogai-telegram-delivery:cutover-candidate
+TELEGRAM_GATEWAY_NETWORK=<existing external Docker network>
+TELEGRAM_IMAGE=switchboard-telegram:production
 ```
 
-The image tag is an example; preserve the actual image from the current
-container. The file pointed to by `TELEGRAM_ENV_FILE` contains private
-`TELEGRAM_ENCRYPTION_KEY` and `TELEGRAM_ADMIN_TOKEN`; it is root-readable
-only. The SQLite directory must remain writable by the service's UID 10001.
-
-The host migration script in the Core repository creates
-`.env.production` after verifying the running service, and recreates
-Telegram only after stopping the previous writer and copying all SQLite/WAL
-files. Never copy only a live SQLite main file.
+The referenced runtime env contains private `TELEGRAM_ENCRYPTION_KEY`
+and `TELEGRAM_ADMIN_TOKEN`; it must remain root-readable only. SQLite must
+remain writable by UID 10001.
 
 ## Routine operations
 
-Run on the host, from this repository:
-
 ```bash
-sudo docker compose -p nogai-telegram-standalone \
+cd ~/agent-switchboard-telegram
+sudo docker compose -p switchboard-telegram \
   --env-file .env.production -f compose.production.yaml config --quiet
 
-sudo docker compose -p nogai-telegram-standalone \
+sudo docker compose -p switchboard-telegram \
   --env-file .env.production -f compose.production.yaml ps
 
-sudo docker compose -p nogai-telegram-standalone \
+sudo docker compose -p switchboard-telegram \
   --env-file .env.production -f compose.production.yaml up -d --no-build telegram-delivery
 ```
 
-Do not run staging `compose.yaml` against production state, run a second
-Telegram receiver, rotate the encryption key, or run `down -v`. Preserve
-consistent SQLite snapshots and the matching runtime credentials together.
+Never run the staging `compose.yaml` against production state, run a
+second Telegram receiver, rotate the Fernet key, or use `down -v`.
+Keep SQLite snapshots and matching runtime credentials together.
 
-The earlier [PRODUCTION_CUTOVER.md](PRODUCTION_CUTOVER.md) documents the
-initial ownership migration and its historical paths, not current
-day-to-day commands.
+After the rename, update `LOGGING_COMPOSE_PROJECTS` in the independent
+Logging checkout to include `switchboard-telegram` instead of the previous
+Telegram project, then rerun `./start-on-host.sh` there.
+
+The earlier [PRODUCTION_CUTOVER.md](PRODUCTION_CUTOVER.md) records the
+historical initial ownership cutover and should not be used for routine
+operations.
