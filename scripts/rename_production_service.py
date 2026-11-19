@@ -134,6 +134,23 @@ def verify(old: dict, new: dict, state: Path, network: str) -> None:
            "assert r.status==200")
 
 
+def verify_private_paths(state: Path, secret_file: Path) -> None:
+    """Check protected production paths as root without reading their contents.
+
+    Telegram's state and credentials may be owned by root or UID 10001.
+    A user-level Path.is_file() can raise PermissionError before cutover.
+    """
+    for kind, path in (
+        ("-d", state),
+        ("-f", state / "telegram.sqlite3"),
+        ("-f", secret_file),
+    ):
+        result = run("sudo", "test", kind, str(path), check=False)
+        if result.returncode:
+            raise RuntimeError("Missing or inaccessible private production path: "
+                               + str(path))
+
+
 def main() -> None:
     run("sudo", "-v")
     if not ENV.is_file():
@@ -146,8 +163,7 @@ def main() -> None:
     state = Path(values["TELEGRAM_STATE_DIR"]).resolve()
     secret_file = Path(values["TELEGRAM_ENV_FILE"])
     network = values["TELEGRAM_GATEWAY_NETWORK"]
-    assert state.is_dir() and (state / "telegram.sqlite3").is_file(), "SQLite state missing"
-    assert secret_file.is_file(), "Private runtime env missing"
+    verify_private_paths(state, secret_file)
     old = inspect(OLD)
     assert old["State"]["Running"], "Existing Telegram receiver is not running"
     assert old["Config"]["Labels"].get("com.docker.compose.project") == "nogai-telegram-standalone"
