@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import py_compile
 import subprocess
 import tempfile
 
@@ -28,11 +29,11 @@ def main() -> None:
             **os.environ,
             "TELEGRAM_ENV_FILE": str(env_file),
             "TELEGRAM_STATE_DIR": str(state),
-            "TELEGRAM_GATEWAY_NETWORK": "nogai-mcp-homelab_default",
-            "TELEGRAM_IMAGE": "nogai-telegram-delivery:cutover-candidate",
+            "TELEGRAM_GATEWAY_NETWORK": "switchboard-test-primary",
+            "TELEGRAM_IMAGE": "switchboard-telegram:production",
         }
         result = subprocess.run(
-            ["docker", "compose", "-p", "nogai-telegram-standalone",
+            ["docker", "compose", "-p", "switchboard-telegram",
              "-f", str(COMPOSE), "config", "--format", "json"],
             env=env, capture_output=True, text=True, check=True,
         )
@@ -40,8 +41,9 @@ def main() -> None:
         services = config["services"]
         assert set(services) == {"telegram-delivery"}, "unexpected service ownership"
         svc = services["telegram-delivery"]
-        assert svc["container_name"] == "nogai-telegram-delivery"
-        assert svc["image"] == "nogai-telegram-delivery:cutover-candidate"
+        assert config["name"] == "switchboard-telegram"
+        assert svc["container_name"] == "switchboard-telegram-delivery"
+        assert svc["image"] == "switchboard-telegram:production"
         assert svc["user"] == "10001:10001"
         assert svc["read_only"] is True
         assert "ports" not in svc and "expose" not in svc
@@ -49,7 +51,7 @@ def main() -> None:
         assert svc["environment"]["TELEGRAM_ADMIN_TOKEN"] == "test-token-not-real"
         assert svc["environment"]["TELEGRAM_ENCRYPTION_KEY"] == "test-key-not-real"
         assert svc["networks"]["gateway"]["aliases"] == ["telegram-delivery"]
-        assert config["networks"]["gateway"]["name"] == "nogai-mcp-homelab_default"
+        assert config["networks"]["gateway"]["name"] == "switchboard-test-primary"
         assert config["networks"]["gateway"]["external"] is True
         assert len(svc["volumes"]) == 1
         mount = svc["volumes"][0]
@@ -58,6 +60,7 @@ def main() -> None:
         assert svc["cap_drop"] == ["ALL"]
         assert "no-new-privileges:true" in svc["security_opt"]
         assert "8781" in str(svc["healthcheck"]["test"])
+        py_compile.compile(str(ROOT / "scripts/rename_production_service.py"), doraise=True)
         print("PASS Telegram independent production Compose shape, secrets boundary, network and state mounts")
 
 
