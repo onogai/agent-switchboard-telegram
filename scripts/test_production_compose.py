@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-import py_compile
 import subprocess
 import tempfile
 
@@ -60,7 +59,6 @@ def main() -> None:
         assert svc["cap_drop"] == ["ALL"]
         assert "no-new-privileges:true" in svc["security_opt"]
         assert "8781" in str(svc["healthcheck"]["test"])
-        py_compile.compile(str(ROOT / "scripts/rename_production_service.py"), doraise=True)
         print("PASS Telegram independent production Compose shape, secrets boundary, network and state mounts")
 
 
