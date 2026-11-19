@@ -1,6 +1,6 @@
 # Independent production Telegram Delivery. NOT the staging compose.yaml.
 # Keep the stable DNS alias telegram-delivery for Gateway/Manager.
-# Never start this service while the previous receiver is running.
+# Never run a second receiver for the same bot and state.
 name: switchboard-telegram
 services:
   telegram-delivery:
