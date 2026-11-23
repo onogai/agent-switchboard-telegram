@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
 import hmac
 import os
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -22,12 +25,39 @@ _service: TelegramDelivery | None = None
 _discovery: ChatDiscovery | None = None
 
 
+def _private_secret(name: str) -> str:
+    """Read file-mounted managed credentials, else legacy environment values."""
+    path = os.environ.get(name + "_FILE", "")
+    if path:
+        return Path(path).read_text(encoding="ascii").strip()
+    return os.environ.get(name, "")
+
+
+def _encryption_key() -> str:
+    secret = _private_secret("TELEGRAM_ENCRYPTION_KEY")
+    # Managed installer provisions 48 random bytes as a 64-char URL-safe
+    # secret. Derive a Fernet-compatible 32-byte key deterministically.
+    # Existing 44-character Fernet keys are used unchanged during migration.
+    if os.environ.get("TELEGRAM_ENCRYPTION_KEY_FILE") and len(secret) == 64:
+        if not re.fullmatch(r"[A-Za-z0-9_-]{64}", secret):
+            raise RuntimeError("Invalid Telegram managed encryption seed")
+        return base64.urlsafe_b64encode(hashlib.sha256(secret.encode("ascii")).digest()).decode("ascii")
+    return secret
+
+
+def _discovery_enabled() -> bool:
+    flag = os.environ.get("TELEGRAM_DISCOVERY_ENABLED", "1").strip()
+    if flag not in {"0", "1"}:
+        raise RuntimeError("TELEGRAM_DISCOVERY_ENABLED must be 0 or 1")
+    return flag == "1"
+
+
 def delivery_service() -> TelegramDelivery:
     global _service
     if _service is None:
         _service = TelegramDelivery(Store(
             Path(os.environ.get("TELEGRAM_DB_PATH", "/data/telegram.sqlite3")),
-            os.environ.get("TELEGRAM_ENCRYPTION_KEY", ""),
+            _encryption_key(),
         ))
     return _service
 
@@ -102,7 +132,10 @@ def response(value: dict, status: int = 200):
 
 
 def allowed(request) -> bool:
-    secret = os.environ.get("TELEGRAM_ADMIN_TOKEN", "")
+    try:
+        secret = _private_secret("TELEGRAM_ADMIN_TOKEN")
+    except (OSError, UnicodeError):
+        return False
     header = request.headers.get("authorization", "")
     # Never allow empty credentials, even for loopback access.
     return (len(secret) >= 32 and
@@ -307,15 +340,16 @@ mcp_app = mcp.http_app(path="/")
 async def lifespan(app):
     delivery_service()  # fail early if token encryption cannot be initialized
     async with mcp_app.lifespan(mcp_app):
-        task = asyncio.create_task(poll_discovery_loop())
+        task = asyncio.create_task(poll_discovery_loop()) if _discovery_enabled() else None
         try:
             yield
         finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
+            if task is not None:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
 
 app = Starlette(routes=[*management_routes, Mount("/mcp", app=mcp_app)],
