@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telegram · Switchboard</title>
+<style>
+:root {color-scheme:light dark; font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; --bg:#f6f7f9;--card:#fff;--ink:#15202b;--muted:#677383;--line:#dde3e9;--blue:#1479cf;--soft:#e9f3fc;--red:#b23737;--ok:#22734a;--radius:12px}
+@media(prefers-color-scheme:dark){:root{--bg:#10151a;--card:#1a2129;--ink:#f1f5f8;--muted:#acb7c2;--line:#34414b;--blue:#7fbcf2;--soft:#203647;--red:#f09d9d;--ok:#87d9ad}}
+* {box-sizing:border-box} body {margin:0;background:var(--bg);color:var(--ink)} main{max-width:1320px;padding:24px 24px 56px;margin:auto} h1,h2,h3,p{margin:0} h1{font-size:24px;letter-spacing:-.04em;font-weight:750} h2{font-size:17px;letter-spacing:-.02em} h3{font-size:14px}
+small,.muted{color:var(--muted)} p.muted{margin-top:3px} button,input,select,textarea{font:inherit} button{cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 12px;font-weight:600} button:hover{border-color:var(--blue)} button:disabled{opacity:.5;cursor:wait} button.primary{background:var(--blue);border-color:var(--blue);color:white} button.danger{color:var(--red)}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)} textarea{min-height:90px;resize:vertical} label{display:block;color:var(--muted);font-size:12px;margin-bottom:4px;font-weight:600}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px} .header-actions{display:flex;gap:8px;align-items:center} .status{font-size:12px;border:1px solid var(--line);border-radius:20px;padding:5px 10px}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}.metric{border:1px solid var(--line);background:var(--card);padding:15px;border-radius:var(--radius)}.metric strong{font-size:25px;display:block;line-height:1.4}.metric span{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid var(--line);overflow:auto}.tabs button{border:0;border-radius:8px 8px 0 0;background:transparent;padding:11px 14px;color:var(--muted)}.tabs button[aria-selected=true]{color:var(--blue);border-bottom:2px solid var(--blue)}
+.panel{display:none}.panel.active{display:block}.layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(270px,1fr);gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}.card-head{padding:17px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}.card-body{padding:16px 18px}
+.item{padding:13px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line)}.item:last-child{border-bottom:0}.item-title{font-weight:650;overflow-wrap:anywhere}.item-sub{font-size:12px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}.actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.empty{padding:30px 18px;text-align:center;color:var(--muted)}.pill{display:inline-block;border-radius:24px;font-size:11px;font-weight:700;padding:2px 8px;background:var(--soft);color:var(--blue)}.pill.off{background:var(--bg);color:var(--muted)}.pill.ok{color:var(--ok)}
+.form-grid{display:grid;gap:12px}.form-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.form-grid .wide{grid-column:1/-1}
+summary{cursor:pointer;font-weight:650;color:var(--blue)} details{padding-top:10px}details .form-grid{padding-top:12px} .notice{display:none;padding:10px 13px;border:1px solid var(--line);border-radius:9px;margin-bottom:14px;background:var(--soft)}.notice.show{display:block}
+dialog{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;max-width:520px;width:min(95vw,520px);padding:22px;box-shadow:0 18px 50px #0004}dialog::backdrop{background:#0008}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+@media(max-width:850px){.metrics{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}}@media(max-width:520px){main{padding:14px 12px 36px}header{align-items:center}h1{font-size:21px}.item{align-items:flex-start;flex-direction:column}.actions{justify-content:flex-start}.form-grid.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div><h1>Telegram Delivery</h1><p class="muted">Bots, allowed routes and delivery activity</p></div>
+  <div class="header-actions"><span id="connection" class="status">Connecting…</span><button id="refresh">Refresh</button></div>
+</header>
+<div id="notice" class="notice" role="status"></div>
+<div class="metrics" id="metrics"><div class="metric"><strong>—</strong><span>Bots</span></div><div class="metric"><strong>—</strong><span>Routes</span></div><div class="metric"><strong>—</strong><span>Discovered chats</span></div><div class="metric"><strong>—</strong><span>Recent deliveries</span></div></div>
+<nav class="tabs" aria-label="Telegram sections">
+<button data-tab="routes" aria-selected="true">Chats &amp; routes</button><button data-tab="bots" aria-selected="false">Bots</button><button data-tab="activity" aria-selected="false">Activity</button>
+</nav>
+<section id="panel-routes" class="panel active"><div class="layout">
+  <div class="card"><div class="card-head"><div><h2>Allowed routes</h2><small>Only approved destinations can receive messages</small></div></div><div id="routes"></div></div>
+  <div>
+    <div class="card"><div class="card-head"><h2>Discovered chats</h2></div><div id="discovered"></div></div>
+    <div class="card" style="margin-top:14px"><div class="card-head"><h2>Add a route</h2></div><div class="card-body">
+      <form id="route-form" class="form-grid"><div class="form-grid two">
+      <div><label for="route-slug">Slug</label><input id="route-slug" name="slug" pattern="[a-z0-9_-]+" placeholder="news" required></div>
+      <div><label for="route-label">Label</label><input id="route-label" name="label" placeholder="News" required></div>
+      <div><label for="route-bot">Bot</label><select id="route-bot" name="bot_id" required></select></div>
+      <div><label for="route-chat">Chat ID</label><input id="route-chat" name="chat_id" placeholder="-100…" required></div>
+      </div><button class="primary" type="submit">Add route</button></form>
+    </div></div>
+  </div>
+</div></section>
+<section id="panel-bots" class="panel"><div class="layout">
+  <div class="card"><div class="card-head"><h2>Configured bots</h2></div><div id="bots"></div></div>
+  <div class="card"><div class="card-head"><h2>Add bot</h2></div><div class="card-body">
+    <form id="bot-form" class="form-grid"><div><label for="bot-label">Label</label><input id="bot-label" name="label" required placeholder="Main bot"></div>
+    <div><label for="bot-token">Bot token</label><input id="bot-token" name="token" type="password" autocomplete="off" required placeholder="From BotFather"></div>
+    <p class="muted">The token is stored by Telegram Delivery; never displayed again.</p><button class="primary">Add bot</button></form>
+  </div></div>
+</div></section>
+<section id="panel-activity" class="panel"><div class="card"><div class="card-head"><h2>Recent deliveries</h2></div><div id="activity"></div></div></section>
+<dialog id="send-dialog"><form id="send-form" class="form-grid">
+  <h2>Send a test message</h2><p class="muted">Destination: <strong id="send-target"></strong></p>
+  <input type="hidden" name="destination" id="send-destination">
+  <div><label for="send-text">Message</label><textarea id="send-text" name="text" required maxlength="4096"></textarea></div>
+  <div class="dialog-actions"><button type="button" id="send-cancel">Cancel</button><button class="primary">Send message</button></div>
+</form></dialog>
+</main>
+<script>
+(() => {
+'use strict';
+const base = location.pathname.replace(/[^/]*$/, '');
+const $ = id => document.getElementById(id);
+const esc = value => String(value ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+let csrf = null;
+let state = { bots: [], routes: [], chats: [], deliveries: [] };
+function note(message, error=false) {
+  $('notice').textContent = message;
+  $('notice').classList.add('show');
+  $('notice').style.borderColor = error ? 'var(--red)' : 'var(--line)';
+}
+async function api(path, payload=null, method='GET') {
+  const headers = {};
+  if (method !== 'GET') {
+    if (!csrf) {
+      const session = await fetch('/admin/api/session', {credentials:'same-origin',cache:'no-store'});
+      if (!session.ok) throw Error('Manager session unavailable');
+      csrf = (await session.json()).csrf_token;
+    }
+    headers['Content-Type'] = 'application/json';
+    headers['X-CSRF-Token'] = csrf;
+  }
+  const result = await fetch(base + 'api/' + path, {
+    method, credentials:'same-origin', cache:'no-store', headers,
+    ...(payload === null ? {} : {body:JSON.stringify(payload)})
+  });
+  const data = await result.json().catch(() => ({}));
+  if (!result.ok) throw Error(data.error || 'HTTP ' + result.status);
+  return data;
+}
+function empty(text) { return '<p class="empty">' + esc(text) + '</p>'; }
+function pill(label, good=true) { return '<span class="pill ' + (good?'ok':'off') + '">' + esc(label) + '</span>'; }
+function render() {
+  $('connection').textContent = 'Connected';
+  $('metrics').innerHTML = [
+    [state.bots.length,'Bots'],[state.routes.filter(r=>r.enabled).length,'Active routes'],
+    [state.chats.filter(c=>!c.ignored).length,'Discovered chats'],[state.deliveries.length,'Recent deliveries']
+  ].map(([n,label])=>'<div class="metric"><strong>'+esc(n)+'</strong><span>'+esc(label)+'</span></div>').join('');
+  $('routes').innerHTML = state.routes.length ? state.routes.map(r => '<article class="item"><div><div class="item-title">'+esc(r.label)+' <span class="pill">'+esc(r.slug)+'</span></div><div class="item-sub">'+esc(r.chat_type)+' · chat '+esc(r.chat_id)+' · '+(r.enabled?'Enabled':'Disabled')+'</div></div><div class="actions">'+pill(r.enabled?'On':'Off',r.enabled)+'<button data-action="toggle-route" data-id="'+esc(r.slug)+'">'+(r.enabled?'Disable':'Enable')+'</button><button data-action="test" data-id="'+esc(r.slug)+'">Test</button><button class="danger" data-action="delete-route" data-id="'+esc(r.slug)+'">Remove</button></div></article>').join('') : empty('No allowed routes configured');
+  $('discovered').innerHTML = state.chats.length ? state.chats.map(c => '<article class="item"><div><div class="item-title">'+esc(c.title)+' '+(c.ignored?pill('Ignored',false):'')+'</div><div class="item-sub">'+esc(c.chat_type)+' · '+esc(c.chat_id)+'</div></div><div class="actions">'+(!c.ignored && c.present && c.bot_enabled ? '<button data-action="approve" data-bot="'+esc(c.bot_id)+'" data-chat="'+esc(c.chat_id)+'">Approve</button>':'')+'<button data-action="ignore" data-bot="'+esc(c.bot_id)+'" data-chat="'+esc(c.chat_id)+'">'+(c.ignored?'Restore':'Ignore')+'</button></div></article>').join('') : empty('No discovered chats yet');
+  $('bots').innerHTML = state.bots.length ? state.bots.map(b => '<article class="item"><div><div class="item-title">'+esc(b.label)+' <span class="muted">@'+esc(b.username)+'</span></div><div class="item-sub">Bot '+esc(b.id)+'</div></div><div class="actions">'+pill(b.enabled?'Enabled':'Disabled',b.enabled)+'<button data-action="toggle-bot" data-id="'+esc(b.id)+'">'+(b.enabled?'Disable':'Enable')+'</button></div></article>').join('') : empty('No bots configured');
+  $('route-bot').innerHTML = '<option value="">Select bot</option>' + state.bots.filter(b=>b.enabled).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.label)+'</option>').join('');
+  $('activity').innerHTML = state.deliveries.length ? state.deliveries.map(d=>'<article class="item"><div><div class="item-title">'+esc(d.destination)+' · '+esc(d.operation)+'</div><div class="item-sub">'+esc(d.delivery_id)+'</div></div>'+pill(d.status,d.status==='accepted')+'</article>').join('') : empty('No deliveries recorded yet');
+}
+async function load() {
+  try {
+    const [bots,destinations,chats,deliveries] = await Promise.all([
+      api('bots'),api('destinations'),api('discovered'),api('deliveries')
+    ]);
+    state = {bots:bots.bots||[],routes:destinations.destinations||[],chats:chats.chats||[],deliveries:deliveries.deliveries||[]};
+    render();
+  } catch (error) {
+    $('connection').textContent = 'Unavailable';
+    note('Could not load Telegram: ' + error.message, true);
+  }
+}
+async function perform(fn, label) {
+  try { await fn(); note(label); await load(); }
+  catch(error) { note(error.message, true); }
+}
+document.querySelector('.tabs').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-tab]'); if(!b)return;
+  for(const button of document.querySelectorAll('.tabs button')) button.setAttribute('aria-selected',button===b?'true':'false');
+  for(const section of document.querySelectorAll('.panel')) section.classList.toggle('active',section.id==='panel-'+b.dataset.tab);
+});
+$('refresh').addEventListener('click',()=>load());
+$('send-cancel').addEventListener('click',()=> $('send-dialog').close());
+$('send-form').addEventListener('submit',e=>{
+  e.preventDefault();const f=Object.fromEntries(new FormData(e.target));
+  if(!confirm('Send this message to '+f.destination+'?'))return;
+  perform(()=>api('test-send',{...f,confirm:true},'POST'),'Test message sent');
+  $('send-dialog').close();e.target.reset();
+});
+$('bot-form').addEventListener('submit',e=>{
+  e.preventDefault(); const f=Object.fromEntries(new FormData(e.target));
+  perform(()=>api('bots',f,'POST'),'Bot added');e.target.reset();
+});
+$('route-form').addEventListener('submit',e=>{
+  e.preventDefault(); const f=Object.fromEntries(new FormData(e.target));
+  perform(()=>api('destinations',f,'POST'),'Route added');e.target.reset();
+});
+document.body.addEventListener('click', e=>{
+  const b=e.target.closest('[data-action]'); if(!b)return;
+  const action=b.dataset.action, id=b.dataset.id;
+  if(action==='test'){
+    $('send-destination').value=id; $('send-target').textContent=id;
+    $('send-dialog').showModal(); return;
+  }
+  if(action==='toggle-bot'){
+    const bot=state.bots.find(x=>x.id===id); if(bot)perform(()=>api('bots/'+encodeURIComponent(id),{enabled:!bot.enabled},'PUT'),'Bot updated');
+  }else if(action==='toggle-route'){
+    const route=state.routes.find(x=>x.slug===id); if(route)perform(()=>api('destinations/'+encodeURIComponent(id),{enabled:!route.enabled},'PUT'),'Route updated');
+  }else if(action==='ignore'){
+    const bot=b.dataset.bot, chat=b.dataset.chat;
+    const found=state.chats.find(x=>x.bot_id===bot && x.chat_id===chat);
+    if(found)perform(()=>api('discovered/'+encodeURIComponent(bot)+'/'+encodeURIComponent(chat),{ignored:!found.ignored},'PUT'),'Chat updated');
+  }else if(action==='approve'){
+    const bot=b.dataset.bot, chat=b.dataset.chat;
+    const c=state.chats.find(x=>x.bot_id===bot&&x.chat_id===chat);
+    const slug=prompt('Route slug (lowercase)', c?.title?.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'chat');
+    if(!slug)return;
+    const label=prompt('Route label', c?.title||slug);
+    if(!label)return;
+    perform(()=>api('discovered/'+encodeURIComponent(bot)+'/'+encodeURIComponent(chat)+'/approve',{slug,label},'POST'),'Chat approved');
+  }else if(action==='delete-route'){
+    if(!confirm('Remove route '+id+'? Existing Telegram messages will not be deleted.'))return;
+    perform(async()=>{
+      const impact=await api('destinations/'+encodeURIComponent(id)+'/impact');
+      if(!confirm('This affects '+impact.delivery_count+' deliveries and '+impact.summary_count+' summaries. Continue?'))return;
+      await api('destinations/'+encodeURIComponent(id)+'/delete',{expected_binding_id:impact.binding_id,confirm:true},'POST');
+    },'Route removal checked');
+  }
+});
+load();
+})();
+</script>
+</body>
+</html>

@@ -13,7 +13,7 @@ from pathlib import Path
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from starlette.applications import Starlette
-from starlette.responses import JSONResponse
+from starlette.responses import HTMLResponse, JSONResponse
 from starlette.routing import Mount, Route
 
 from .bot_api import BotApiError
@@ -348,6 +348,26 @@ management_routes = [
     Route("/internal/summary/pin", management(retry_summary_pin), methods=["POST"]),
 ]
 
+async def ui_home(request):
+    """Serve the add-on-owned panel to the trusted Manager ingress."""
+    if not allowed(request):
+        return response({"error": "Unauthorized"}, 401)
+    html = Path(__file__).with_name("admin_ui.html").read_text(encoding="utf-8")
+    return HTMLResponse(html, headers={"Cache-Control": "no-store"})
+
+
+# Same management handlers, exposed only under the UI's private prefix.
+# The generic Switchboard ingress forwards its Manager-authenticated requests
+# here, adding the add-on's private admin token server-side.
+ui_routes = [
+    Route("/internal/ui/", ui_home),
+    *(
+        Route("/internal/ui/api" + route.path.removeprefix("/internal"),
+              route.endpoint, methods=route.methods)
+        for route in management_routes if route.path.startswith("/internal/")
+    ),
+]
+
 mcp_app = mcp.http_app(path="/")
 
 
@@ -367,5 +387,5 @@ async def lifespan(app):
                     pass
 
 
-app = Starlette(routes=[*management_routes, Mount("/mcp", app=mcp_app)],
+app = Starlette(routes=[*management_routes, *ui_routes, Mount("/mcp", app=mcp_app)],
                 lifespan=lifespan)
