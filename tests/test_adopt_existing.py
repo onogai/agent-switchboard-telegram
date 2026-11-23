@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -11,7 +13,7 @@ from cryptography.fernet import Fernet
 
 import telegram_service.app as module
 from telegram_service.store import Store
-from scripts.adopt_existing import migrate
+from scripts.adopt_existing import migrate, _write_secret
 
 
 class SecretCompatibilityTests(unittest.TestCase):
@@ -107,7 +109,8 @@ class OfflineAdoptionTests(unittest.TestCase):
         self.assertFalse((self.state / ".telegram-adopted").exists())
 
     def test_offline_adoption_preserves_credentials_and_backup(self):
-        before = self.old_db.read_bytes()
+        with closing(sqlite3.connect(self.old_db)) as db:
+            before = db.execute("SELECT encrypted_token FROM bots WHERE id=?", ("101",)).fetchone()[0]
         result = self._run(apply=True)
         self.assertEqual(1, result["bots"])
         self.assertTrue((self.state / ".telegram-adopted").exists())
@@ -115,7 +118,9 @@ class OfflineAdoptionTests(unittest.TestCase):
         self.assertEqual("z" * 48, (self.state / "secrets" / "admintoken").read_text().strip())
         backup, = list((self.state / "legacy-backup").glob("legacy-*.sqlite3"))
         self.assertTrue(backup.is_file())
-        self.assertEqual(before, self.old_db.read_bytes())
+        with closing(sqlite3.connect(self.old_db)) as db:
+            after = db.execute("SELECT encrypted_token FROM bots WHERE id=?", ("101",)).fetchone()[0]
+        self.assertEqual(before, after)
         managed = Store(self.state / "database" / "telegram.sqlite3", self.legacy_key)
         self.assertEqual("secret_token", managed.bot_token("101"))
         with self.assertRaisesRegex(RuntimeError, "already imported"):
@@ -127,6 +132,40 @@ class OfflineAdoptionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Stop the candidate"):
             self._run(apply=True, candidate_running=True)
         self.assertEqual(1, self._run(old_running=True)["bots"])
+
+    def test_empty_candidate_with_wal_shm_sidecars_can_be_migrated(self):
+        # The staged add-on creates SQLite in WAL mode on its first startup.
+        candidate_path = self.state / "database" / "telegram.sqlite3"
+        Store(candidate_path, Fernet.generate_key().decode())
+        # Simulate sidecars surviving the stopped candidate process.
+        for suffix in ("-wal", "-shm"):
+            Path(str(candidate_path) + suffix).touch()
+        self.assertEqual(1, self._run()["bots"])  # read-only preflight
+        self.assertEqual(1, self._run(apply=True)["bots"])
+        self.assertFalse(Path(str(candidate_path) + "-wal").exists())
+        self.assertFalse(Path(str(candidate_path) + "-shm").exists())
+        with __import__("sqlite3").connect(candidate_path) as db:
+            self.assertEqual("ok", db.execute("PRAGMA integrity_check").fetchone()[0])
+        managed = Store(candidate_path, self.legacy_key)
+        self.assertEqual("secret_token", managed.bot_token("101"))
+
+    def test_replaced_secrets_keep_private_mode_and_owner(self):
+        secret = self.state / "secrets" / "admintoken"
+        before = secret.stat()
+        _write_secret(secret, "replacement")
+        after = secret.stat()
+        self.assertEqual((before.st_uid, before.st_gid), (after.st_uid, after.st_gid))
+        self.assertEqual(0o600, after.st_mode & 0o777)
+        self.assertEqual("replacement", secret.read_text().strip())
+
+    def test_sidecar_symlink_is_rejected(self):
+        candidate_path = self.state / "database" / "telegram.sqlite3"
+        Store(candidate_path, Fernet.generate_key().decode())
+        wal = self.state / "database" / "telegram.sqlite3-wal"
+        wal.unlink(missing_ok=True)
+        wal.symlink_to(self.env_file)
+        with self.assertRaisesRegex(RuntimeError, "non-symlink"):
+            self._run()
 
     def test_refuses_to_overwrite_nonempty_candidate(self):
         candidate = Store(self.state / "database" / "telegram.sqlite3", Fernet.generate_key().decode())

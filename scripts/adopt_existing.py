@@ -7,6 +7,7 @@ Registry or Manager mutations; secrets are never accepted on the command line.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 from datetime import datetime, timezone
 import json
 import os
@@ -101,9 +102,16 @@ def _candidate(instance: Path) -> tuple[Path, Path]:
         _file(state / "secrets" / name, "Generated secret file")
     if (state / ".telegram-adopted").exists():
         raise RuntimeError("Legacy Telegram state was already imported")
-    if database.exists():
+    # WAL/SHM may legitimately remain after the candidate was started once.
+    # Validate their identity and let SQLite handle them; never unlink them.
+    for suffix in ("-wal", "-shm"):
+        sidecar = Path(str(database) + suffix)
+        if sidecar.exists() or sidecar.is_symlink():
+            _file(sidecar, "Candidate SQLite sidecar")
+    if database.exists() or database.is_symlink():
         _file(database, "Candidate database")
-        with sqlite3.connect(database) as db:
+        with closing(sqlite3.connect(database.resolve().as_uri() + "?mode=ro",
+                                     uri=True)) as db:
             if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                 raise RuntimeError("Candidate database is not healthy")
             names = {row[0] for row in db.execute(
@@ -111,17 +119,24 @@ def _candidate(instance: Path) -> tuple[Path, Path]:
             for name in names - {"sqlite_sequence"}:
                 if db.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]:
                     raise RuntimeError("Candidate database is not empty; refusing replacement")
-    if any(Path(str(database) + suffix).exists() for suffix in ("-wal", "-shm")):
-        raise RuntimeError("Candidate SQLite has WAL/SHM sidecars; inspect before replacing")
     return state, database
 
 
 def _write_secret(path: Path, value: str) -> None:
+    # Migrations are typically launched with sudo to read the old 10001-owned
+    # DB. Keep the *managed* secret file's installer-owned UID/GID intact.
+    original = _file(path, "Managed secret").stat()
     candidate = path.with_name(path.name + ".new")
     fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     try:
         with os.fdopen(fd, "w", encoding="ascii") as out:
             out.write(value + "\n")
+            os.fchmod(out.fileno(), 0o600)
+            current = os.fstat(out.fileno())
+            if (current.st_uid, current.st_gid) != (original.st_uid, original.st_gid):
+                os.fchown(out.fileno(), original.st_uid, original.st_gid)
+            out.flush()
+            os.fsync(out.fileno())
         os.replace(candidate, path)
     finally:
         candidate.unlink(missing_ok=True)
@@ -165,11 +180,34 @@ def migrate(instance: Path, db_path: Path, legacy_env: Path, apply: bool) -> dic
                 out.write(block)
             out.flush()
             os.fsync(out.fileno())
+        # Never os.replace a WAL-mode database while sidecars exist: doing
+        # so can attach the old candidate WAL to the imported database.
+        # SQLite's online backup API safely replaces the empty candidate DB
+        # and handles its WAL/SHM as a unit.
+        existing = target.stat() if target.exists() else (state / "database").stat()
+        with closing(sqlite3.connect(snapshot)) as source:
+            with closing(sqlite3.connect(target)) as destination:
+                source.backup(destination)
+        # Close connections before switching out of WAL. The imported DB is
+        # allowed to re-enable WAL at normal app startup as its own UID.
+        with closing(sqlite3.connect(target)) as check:
+            if check.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                raise RuntimeError("Imported candidate SQLite failed integrity check")
+            mode = check.execute("PRAGMA journal_mode=DELETE").fetchone()[0]
+            if mode != "delete":
+                raise RuntimeError("Unable to finalize candidate SQLite journal")
+        # When run under sudo, a newly created candidate DB would otherwise
+        # be root-owned; retain the installer's UID/GID and private mode.
+        os.chmod(target, 0o600)
+        current = target.stat()
+        if (current.st_uid, current.st_gid) != (existing.st_uid, existing.st_gid):
+            os.chown(target, existing.st_uid, existing.st_gid)
+        if any(Path(str(target) + suffix).exists() for suffix in ("-wal", "-shm")):
+            raise RuntimeError("Candidate journal cleanup incomplete; keep old Telegram stopped")
         _write_secret(state / "secrets" / "encryptionkey",
                       secrets["TELEGRAM_ENCRYPTION_KEY"])
         _write_secret(state / "secrets" / "admintoken",
                       secrets["TELEGRAM_ADMIN_TOKEN"])
-        os.replace(snapshot, target)
     marker = state / ".telegram-adopted"
     with open(marker, "x", encoding="ascii") as done:
         done.write("Imported offline legacy Telegram SQLite; never share state with old service.\n")
