@@ -6,32 +6,7 @@ from threading import RLock
 
 from .bot_api import BotApi, BotApiError
 from .store import DeliveryError, Store
-
-MAX_UNITS = 16384
-PART_UNITS = 4096
-
-
-def units(text: str) -> int:
-    return len(text.encode("utf-16-le")) // 2
-
-
-def split_text(text: str) -> list[str]:
-    if not isinstance(text, str) or not text.strip() or units(text) > MAX_UNITS:
-        raise DeliveryError("Message must be nonempty and at most 16384 UTF-16 units")
-    parts = []
-    current = []
-    size = 0
-    for char in text:
-        width = units(char)
-        if size + width > PART_UNITS:
-            parts.append("".join(current))
-            current, size = [], 0
-        current.append(char)
-        size += width
-    if current:
-        parts.append("".join(current))
-    return parts
-
+from .formatting import format_parts, split_text, units, PART_UNITS
 
 class TelegramDelivery:
     def __init__(self, store: Store, api: BotApi | None = None):
@@ -70,14 +45,17 @@ class TelegramDelivery:
             return self.store.rebind_destination(
                 slug, expected_binding_id, bot_id, chat_id, result["type"], label)
 
-    def send(self, destination: str, text: str, idempotency_key: str | None = None) -> dict:
+    def send(self, destination: str, text: str, idempotency_key: str | None = None,
+             parse_mode: str | None = None) -> dict:
         with self._summary_lock:
-            return self._send_locked(destination, text, idempotency_key)
+            return self._send_locked(destination, text, idempotency_key, parse_mode)
 
-    def _send_locked(self, destination: str, text: str, idempotency_key: str | None = None) -> dict:
-        parts = split_text(text)
+    def _send_locked(self, destination: str, text: str, idempotency_key: str | None = None,
+                     parse_mode: str | None = None) -> dict:
+        parts = format_parts(text, parse_mode)
         target, token = self.store.active_target(destination)
-        record, first = self.store.begin(destination, "send", {"text": text}, idempotency_key,
+        record, first = self.store.begin(destination, "send",
+                                         {"text": text, **({"parse_mode": parse_mode} if parse_mode else {})}, idempotency_key,
                                          target["binding_id"])
         if not first:
             return record
@@ -85,7 +63,8 @@ class TelegramDelivery:
         try:
             for part in parts:
                 response = self.api.call(token, "sendMessage",
-                                         {"chat_id": target["chat_id"], "text": part})
+                                         {"chat_id": target["chat_id"], "text": part,
+                                          **({"parse_mode": parse_mode} if parse_mode else {})})
                 ids.append(str(response["message_id"]))
         except BotApiError as exc:
             status = "unknown" if exc.uncertain else "partial" if ids else "failed"
@@ -185,14 +164,21 @@ class TelegramDelivery:
         with self._summary_lock:
             return self._pin_summary_locked(destination, key, check_remote=True)
 
-    def summary(self, destination: str, key: str, text: str, pin: bool = True) -> dict:
+    def summary(self, destination: str, key: str, text: str, pin: bool = True,
+                parse_mode: str | None = None) -> dict:
         if not isinstance(key, str) or not 1 <= len(key) <= 120:
             raise DeliveryError("Invalid summary key")
         if type(pin) is not bool:
             raise DeliveryError("pin must be boolean")
-        if not isinstance(text, str) or not text.strip() or units(text) > PART_UNITS:
-            raise DeliveryError("Summary must fit in one Telegram message (4096 UTF-16 units)")
-        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        if parse_mode is None:
+            if not isinstance(text, str) or not text.strip() or units(text) > PART_UNITS:
+                raise DeliveryError("Summary must fit in one Telegram message (4096 UTF-16 units)")
+            digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        else:
+            parts = format_parts(text, parse_mode, max_units=PART_UNITS)
+            if len(parts) != 1:
+                raise DeliveryError("Summary must fit in one Telegram message")
+            digest = hashlib.sha256(("HTML\\0" + text).encode("utf-8")).hexdigest()
         with self._summary_lock:
             target, token = self.store.active_target(destination)
             existing = self.store.summary(destination, key)
@@ -211,12 +197,14 @@ class TelegramDelivery:
                 if existing is None:
                     response = self.api.call(token, "sendMessage", {
                         "chat_id": target["chat_id"], "text": text,
+                        **({"parse_mode": parse_mode} if parse_mode else {}),
                     })
                     message_id = str(response["message_id"])
                 else:
                     self.api.call(token, "editMessageText", {
                         "chat_id": target["chat_id"], "message_id": int(message_id),
                         "text": text,
+                        **({"parse_mode": parse_mode} if parse_mode else {}),
                     })
             except BotApiError as exc:
                 return {
