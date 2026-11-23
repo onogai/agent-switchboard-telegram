@@ -9,3 +9,7 @@ secret_files: encryptionkey,admintoken
 mcp_auth: none
 mcp_port: 8781
 mcp_path: /mcp/
+ui_title: Telegram
+ui_port: 8781
+ui_path: /internal/ui
+ui_secret: admintoken
