@@ -43,7 +43,7 @@ def main() -> None:
         assert len(svc["volumes"]) == 3
         mounts = {m["target"]: m for m in svc["volumes"]}
         assert mounts["/data"]["source"] == str(state / "database")
-        assert mounts["/data"]["read_only"] is False
+        assert mounts["/data"].get("read_only", False) is False
         for name in ("encryptionkey", "admintoken"):
             m = mounts["/run/addon-secrets/" + name]
             assert m["source"] == str(state / "secrets" / name)
