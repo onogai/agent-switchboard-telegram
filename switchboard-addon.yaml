@@ -1,0 +1,11 @@
+schema: 2
+id: telegramhub
+name: Telegram Delivery
+compose: compose.addon.yaml
+service: telegramhub
+services: telegramhub
+state_dirs: database
+secret_files: encryptionkey,admintoken
+mcp_auth: none
+mcp_port: 8781
+mcp_path: /mcp/
