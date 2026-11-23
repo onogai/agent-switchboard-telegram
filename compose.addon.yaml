@@ -1,0 +1,45 @@
+# Managed schema-v2 add-on. Do not use the legacy compose.production.yaml
+# to start a second Telegram receiver. Discovery is OFF until an explicit cutover.
+services:
+  telegramhub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    user: "${HOST_UID:?}:${HOST_GID:?}"
+    environment:
+      TELEGRAM_DB_PATH: /data/telegram.sqlite3
+      TELEGRAM_ENCRYPTION_KEY_FILE: /run/addon-secrets/encryptionkey
+      TELEGRAM_ADMIN_TOKEN_FILE: /run/addon-secrets/admintoken
+      TELEGRAM_DISCOVERY_ENABLED: "${TELEGRAM_DISCOVERY_ENABLED:-0}"
+      TELEGRAM_DEFAULT_DESTINATION: "${TELEGRAM_DEFAULT_DESTINATION:-}"
+    volumes:
+      - type: bind
+        source: "${SWITCHBOARD_ADDON_STATE:?}/database"
+        target: /data
+      - type: bind
+        source: "${SWITCHBOARD_ADDON_STATE:?}/secrets/encryptionkey"
+        target: /run/addon-secrets/encryptionkey
+        read_only: true
+      - type: bind
+        source: "${SWITCHBOARD_ADDON_STATE:?}/secrets/admintoken"
+        target: /run/addon-secrets/admintoken
+        read_only: true
+    networks:
+      addons:
+        aliases: ["addon-${SWITCHBOARD_ADDON_INSTANCE}"]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,noexec,size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8781/health',timeout=2).read()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+networks:
+  addons:
+    external: true
+    name: "${SWITCHBOARD_ADDONS_NETWORK:?}"
