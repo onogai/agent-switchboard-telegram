@@ -50,6 +50,18 @@ case. Manager exposes `/internal/summary/status`,
 diagnosing rights and retrying **pin only**. The API requests require the
 private service token; Manager also enforces its own browser CSRF/session.
 
+## Formatting
+
+Modern `telegram_send` and `telegram_upsert_summary` tools accept optional
+`parse_mode="HTML"` (omitted means backwards-compatible plain text).
+Formatting is included in delivery idempotency and summary change detection.
+Long HTML sends split at visible text boundaries with balanced tags;
+malformed HTML is rejected before the first API call. Telegram can still
+reject unsupported attributes or invalid links; errors are reported rather
+than blindly retried. HTML-escape untrusted text at the source.
+
+The legacy `send_telegram` compatibility tool remains plain text.
+
 ## Current production and deployment boundary
 
 As of 18 November 2026, Telegram is already running independently with its
