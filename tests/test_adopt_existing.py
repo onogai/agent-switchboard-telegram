@@ -46,6 +46,15 @@ class SecretCompatibilityTests(unittest.TestCase):
                                      "TELEGRAM_ADMIN_TOKEN_FILE": str(path)}):
             self.assertEqual("m" * 48, module._private_secret("TELEGRAM_ADMIN_TOKEN"))
 
+    def test_discovery_gate_prevents_second_receiver(self):
+        gate = self.folder / 'discovery.enabled'
+        with patch.dict(os.environ, {'TELEGRAM_DISCOVERY_GATE_FILE': str(gate)}):
+            self.assertFalse(module._discovery_gate_open())
+            gate.touch()
+            self.assertTrue(module._discovery_gate_open())
+            gate.unlink()
+            self.assertFalse(module._discovery_gate_open())
+
     def test_discovery_is_explicitly_disabled_for_staging(self):
         with patch.dict(os.environ, {"TELEGRAM_DISCOVERY_ENABLED": "0"}):
             self.assertFalse(module._discovery_enabled())
