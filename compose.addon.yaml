@@ -1,5 +1,5 @@
-# Managed schema-v2 add-on. Do not use the legacy compose.production.yaml
-# to start a second Telegram receiver. Discovery is OFF until an explicit cutover.
+# Managed schema-v2 add-on. Discovery is gated by /data/discovery.enabled:
+# never create this file while the old Telegram receiver is running.
 services:
   telegramhub:
     build:
@@ -11,7 +11,7 @@ services:
       TELEGRAM_DB_PATH: /data/telegram.sqlite3
       TELEGRAM_ENCRYPTION_KEY_FILE: /run/addon-secrets/encryptionkey
       TELEGRAM_ADMIN_TOKEN_FILE: /run/addon-secrets/admintoken
-      TELEGRAM_DISCOVERY_ENABLED: "${TELEGRAM_DISCOVERY_ENABLED:-0}"
+      TELEGRAM_DISCOVERY_GATE_FILE: /data/discovery.enabled
       TELEGRAM_DEFAULT_DESTINATION: "${TELEGRAM_DEFAULT_DESTINATION:-}"
     volumes:
       - type: bind
