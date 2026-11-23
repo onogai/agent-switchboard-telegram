@@ -22,6 +22,22 @@ Generate a fresh Fernet key for **new** installations only:
 `python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'`
 (with `cryptography` installed). Production must preserve its existing key.
 
+## Managed add-on migration path
+
+The repo also ships an isolated schema-v2 Compose/manifest and a guarded offline
+`scripts/adopt_existing.py` importer. It preserves the real legacy bot-token
+encryption key, Admin token, stored IDs, idempotency records and summaries.
+The new managed instance has no discovery polling until its
+`state/database/discovery.enabled` gate file exists. The old and new SQLite
+databases must never run as concurrent delivery owners. Manager's existing
+legacy URL must be repointed at `http://addon-telegramhub:8781` at cutover;
+the Switchboard Core production Compose now supports the
+`SWITCHBOARD_TELEGRAM_SERVICE_URL` override.
+
+For the exact staged install, freeze, backup, import, cutover, Manager routing,
+verification and rollback procedure see [MIGRATION.md](MIGRATION.md).
+**Repository support does not imply that production has been migrated.**
+
 ## Runtime behavior
 
 The HTTP MCP exports `list_destinations`, `telegram_send`,
@@ -49,22 +65,6 @@ case. Manager exposes `/internal/summary/status`,
 `/internal/summary/permissions` and `/internal/summary/pin` for
 diagnosing rights and retrying **pin only**. The API requests require the
 private service token; Manager also enforces its own browser CSRF/session.
-
-## Managed add-on migration path
-
-The repo also ships an isolated schema-v2 Compose/manifest and a guarded offline
-`scripts/adopt_existing.py` importer. It preserves the real legacy bot-token
-encryption key, Admin token, stored IDs, idempotency records and summaries.
-The new managed instance has no discovery polling until its
-`state/database/discovery.enabled` gate file exists. The old and new SQLite
-databases must never run as concurrent delivery owners. Manager's existing
-legacy URL must be repointed at `http://addon-telegramhub:8781` at cutover;
-the Switchboard Core production Compose now supports the
-`SWITCHBOARD_TELEGRAM_SERVICE_URL` override.
-
-For the exact staged install, freeze, backup, import, cutover, Manager routing,
-verification and rollback procedure see [MIGRATION.md](MIGRATION.md).
-**Repository support does not imply that production has been migrated.**
 
 ## Current production and deployment boundary
 
