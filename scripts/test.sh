@@ -11,3 +11,4 @@ docker run --rm --network none --entrypoint python \
 
 # Validate separate production Compose structurally with disposable placeholders only.
 python3 scripts/test_production_compose.py
+python3 scripts/test_managed_compose.py
