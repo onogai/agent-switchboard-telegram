@@ -24,3 +24,15 @@ class TelegramUiTests(unittest.IsolatedAsyncioTestCase):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                          base_url="http://example.test") as client:
                 self.assertEqual(401, (await client.get("/internal/ui/api/bots")).status_code)
+
+    async def test_ui_uses_manager_locale_without_its_own_settings(self):
+        with patch.dict(os.environ, {"TELEGRAM_ADMIN_TOKEN": "x" * 48}):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                         base_url="http://example.test") as client:
+                response = await client.get("/internal/ui/",
+                    headers={"Authorization": "Bearer " + "x" * 48})
+                self.assertEqual(200, response.status_code)
+                self.assertIn("switchboard.admin.locale", response.text)
+                self.assertIn("data-i18n", response.text)
+                self.assertIn('"es-ES"', response.text)
+                self.assertIn('"uk"', response.text)

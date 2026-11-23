@@ -25,42 +25,42 @@ dialog{border:1px solid var(--line);background:var(--card);color:var(--ink);bord
 <body>
 <main>
 <header>
-  <div><h1>Telegram Delivery</h1><p class="muted">Bots, allowed routes and delivery activity</p></div>
-  <div class="header-actions"><span id="connection" class="status">Connecting…</span><button id="refresh">Refresh</button></div>
+  <div><h1 data-i18n>Telegram Delivery</h1><p class="muted" data-i18n>Bots, allowed routes and delivery activity</p></div>
+  <div class="header-actions"><span id="connection" class="status">Connecting…</span><button id="refresh" data-i18n>Refresh</button></div>
 </header>
 <div id="notice" class="notice" role="status"></div>
-<div class="metrics" id="metrics"><div class="metric"><strong>—</strong><span>Bots</span></div><div class="metric"><strong>—</strong><span>Routes</span></div><div class="metric"><strong>—</strong><span>Discovered chats</span></div><div class="metric"><strong>—</strong><span>Recent deliveries</span></div></div>
+<div class="metrics" id="metrics"><div class="metric"><strong>—</strong><span data-i18n>Bots</span></div><div class="metric"><strong>—</strong><span data-i18n>Routes</span></div><div class="metric"><strong>—</strong><span data-i18n>Discovered chats</span></div><div class="metric"><strong>—</strong><span data-i18n>Recent deliveries</span></div></div>
 <nav class="tabs" aria-label="Telegram sections">
-<button data-tab="routes" aria-selected="true">Chats &amp; routes</button><button data-tab="bots" aria-selected="false">Bots</button><button data-tab="activity" aria-selected="false">Activity</button>
+<button data-tab="routes" aria-selected="true" data-i18n>Chats &amp; routes</button><button data-tab="bots" aria-selected="false" data-i18n>Bots</button><button data-tab="activity" aria-selected="false" data-i18n>Activity</button>
 </nav>
 <section id="panel-routes" class="panel active"><div class="layout">
-  <div class="card"><div class="card-head"><div><h2>Allowed routes</h2><small>Only approved destinations can receive messages</small></div></div><div id="routes"></div></div>
+  <div class="card"><div class="card-head"><div><h2 data-i18n>Allowed routes</h2><small data-i18n>Only approved destinations can receive messages</small></div></div><div id="routes"></div></div>
   <div>
-    <div class="card"><div class="card-head"><h2>Discovered chats</h2></div><div id="discovered"></div></div>
-    <div class="card" style="margin-top:14px"><div class="card-head"><h2>Add a route</h2></div><div class="card-body">
+    <div class="card"><div class="card-head"><h2 data-i18n>Discovered chats</h2></div><div id="discovered"></div></div>
+    <div class="card" style="margin-top:14px"><div class="card-head"><h2 data-i18n>Add a route</h2></div><div class="card-body">
       <form id="route-form" class="form-grid"><div class="form-grid two">
-      <div><label for="route-slug">Slug</label><input id="route-slug" name="slug" pattern="[a-z0-9_-]+" placeholder="news" required></div>
-      <div><label for="route-label">Label</label><input id="route-label" name="label" placeholder="News" required></div>
-      <div><label for="route-bot">Bot</label><select id="route-bot" name="bot_id" required></select></div>
-      <div><label for="route-chat">Chat ID</label><input id="route-chat" name="chat_id" placeholder="-100…" required></div>
-      </div><button class="primary" type="submit">Add route</button></form>
+      <div><label for="route-slug" data-i18n>Slug</label><input id="route-slug" name="slug" pattern="[a-z0-9_-]+" placeholder="news" required></div>
+      <div><label for="route-label" data-i18n>Label</label><input id="route-label" name="label" placeholder="News" required></div>
+      <div><label for="route-bot" data-i18n>Bot</label><select id="route-bot" name="bot_id" required></select></div>
+      <div><label for="route-chat" data-i18n>Chat ID</label><input id="route-chat" name="chat_id" placeholder="-100…" required></div>
+      </div><button class="primary" type="submit" data-i18n>Add route</button></form>
     </div></div>
   </div>
 </div></section>
 <section id="panel-bots" class="panel"><div class="layout">
-  <div class="card"><div class="card-head"><h2>Configured bots</h2></div><div id="bots"></div></div>
-  <div class="card"><div class="card-head"><h2>Add bot</h2></div><div class="card-body">
-    <form id="bot-form" class="form-grid"><div><label for="bot-label">Label</label><input id="bot-label" name="label" required placeholder="Main bot"></div>
-    <div><label for="bot-token">Bot token</label><input id="bot-token" name="token" type="password" autocomplete="off" required placeholder="From BotFather"></div>
-    <p class="muted">The token is stored by Telegram Delivery; never displayed again.</p><button class="primary">Add bot</button></form>
+  <div class="card"><div class="card-head"><h2 data-i18n>Configured bots</h2></div><div id="bots"></div></div>
+  <div class="card"><div class="card-head"><h2 data-i18n>Add bot</h2></div><div class="card-body">
+    <form id="bot-form" class="form-grid"><div><label for="bot-label" data-i18n>Label</label><input id="bot-label" name="label" required placeholder="Main bot" data-i18n-placeholder="Main bot"></div>
+    <div><label for="bot-token" data-i18n>Bot token</label><input id="bot-token" name="token" type="password" autocomplete="off" required placeholder="From BotFather" data-i18n-placeholder="From BotFather"></div>
+    <p class="muted" data-i18n>The token is stored by Telegram Delivery; never displayed again.</p><button class="primary" data-i18n>Add bot</button></form>
   </div></div>
 </div></section>
-<section id="panel-activity" class="panel"><div class="card"><div class="card-head"><h2>Recent deliveries</h2></div><div id="activity"></div></div></section>
+<section id="panel-activity" class="panel"><div class="card"><div class="card-head"><h2 data-i18n>Recent deliveries</h2></div><div id="activity"></div></div></section>
 <dialog id="send-dialog"><form id="send-form" class="form-grid">
-  <h2>Send a test message</h2><p class="muted">Destination: <strong id="send-target"></strong></p>
+  <h2 data-i18n>Send a test message</h2><p class="muted"><span data-i18n>Destination:</span> <strong id="send-target"></strong></p>
   <input type="hidden" name="destination" id="send-destination">
-  <div><label for="send-text">Message</label><textarea id="send-text" name="text" required maxlength="4096"></textarea></div>
-  <div class="dialog-actions"><button type="button" id="send-cancel">Cancel</button><button class="primary">Send message</button></div>
+  <div><label for="send-text" data-i18n>Message</label><textarea id="send-text" name="text" required maxlength="4096"></textarea></div>
+  <div class="dialog-actions"><button type="button" id="send-cancel" data-i18n>Cancel</button><button class="primary" data-i18n>Send message</button></div>
 </form></dialog>
 </main>
 <script>
@@ -68,6 +68,28 @@ dialog{border:1px solid var(--line);background:var(--card);color:var(--ink);bord
 'use strict';
 const base = location.pathname.replace(/[^/]*$/, '');
 const $ = id => document.getElementById(id);
+
+const localeKey = 'switchboard.admin.locale';
+let locale = 'en';
+try {
+  const stored = window.localStorage.getItem(localeKey);
+  if (stored === 'uk' || stored === 'es-ES') locale = stored;
+} catch { /* browser storage may be disabled */ }
+document.documentElement.lang = locale === 'uk' ? 'uk' : locale === 'es-ES' ? 'es-ES' : 'en';
+const catalogs = {"uk":{"Telegram Delivery":"Telegram — доставка","Bots, allowed routes and delivery activity":"Боти, дозволені маршрути та історія доставки","Refresh":"Оновити","Bots":"Боти","Routes":"Маршрути","Discovered chats":"Виявлені чати","Recent deliveries":"Останні доставки","Chats & routes":"Чати й маршрути","Activity":"Активність","Allowed routes":"Дозволені маршрути","Only approved destinations can receive messages":"Повідомлення можна надсилати лише до схвалених адресатів","Add a route":"Додати маршрут","Slug":"Ідентифікатор","Label":"Назва","Bot":"Бот","Chat ID":"ID чату","Add route":"Додати маршрут","Configured bots":"Налаштовані боти","Add bot":"Додати бота","Bot token":"Токен бота","The token is stored by Telegram Delivery; never displayed again.":"Токен зберігається в Telegram Delivery і більше не відображатиметься.","Send a test message":"Надіслати тестове повідомлення","Destination:":"Адресат:","Message":"Повідомлення","Cancel":"Скасувати","Send message":"Надіслати повідомлення","Main bot":"Основний бот","From BotFather":"Від BotFather","Connecting…":"Підключення…","Connected":"Підключено","Unavailable":"Недоступно","Active routes":"Активні маршрути","No allowed routes configured":"Дозволених маршрутів ще немає","Enabled":"Увімкнено","Disabled":"Вимкнено","On":"Увімкнено","Off":"Вимкнено","Enable":"Увімкнути","Disable":"Вимкнути","Test":"Тест","Remove":"Видалити","No discovered chats yet":"Виявлених чатів поки немає","Ignored":"Ігнорується","Approve":"Схвалити","Restore":"Відновити","Ignore":"Ігнорувати","No bots configured":"Ботів ще немає","Select bot":"Вибрати бота","No deliveries recorded yet":"Доставок поки немає","chat":"чат","Could not load Telegram: ":"Не вдалося завантажити Telegram: ","Test message sent":"Тестове повідомлення надіслано","Bot added":"Бота додано","Route added":"Маршрут додано","Bot updated":"Бота оновлено","Route updated":"Маршрут оновлено","Chat updated":"Чат оновлено","Chat approved":"Чат схвалено","Route removal checked":"Перевірку видалення маршруту завершено","Send this message to":"Надіслати повідомлення до","Route slug (lowercase)":"Ідентифікатор маршруту (малими літерами)","Route label":"Назва маршруту","Remove route":"Видалити маршрут","Existing Telegram messages will not be deleted.":"Наявні повідомлення Telegram не буде видалено.","This affects":"Це стосується","deliveries and":"доставок і","summaries. Continue?":"зведень. Продовжити?"},"es-ES":{"Telegram Delivery":"Entrega de Telegram","Bots, allowed routes and delivery activity":"Bots, destinos permitidos e historial de entregas","Refresh":"Actualizar","Bots":"Bots","Routes":"Rutas","Discovered chats":"Chats detectados","Recent deliveries":"Envíos recientes","Chats & routes":"Chats y rutas","Activity":"Actividad","Allowed routes":"Rutas permitidas","Only approved destinations can receive messages":"Solo se pueden enviar mensajes a destinos aprobados","Add a route":"Añadir ruta","Slug":"Identificador","Label":"Nombre","Bot":"Bot","Chat ID":"ID del chat","Add route":"Añadir ruta","Configured bots":"Bots configurados","Add bot":"Añadir bot","Bot token":"Token del bot","The token is stored by Telegram Delivery; never displayed again.":"El token se guarda en Telegram Delivery y no volverá a mostrarse.","Send a test message":"Enviar mensaje de prueba","Destination:":"Destino:","Message":"Mensaje","Cancel":"Cancelar","Send message":"Enviar mensaje","Main bot":"Bot principal","From BotFather":"De BotFather","Connecting…":"Conectando…","Connected":"Conectado","Unavailable":"No disponible","Active routes":"Rutas activas","No allowed routes configured":"Todavía no hay rutas permitidas","Enabled":"Activado","Disabled":"Desactivado","On":"Activado","Off":"Desactivado","Enable":"Activar","Disable":"Desactivar","Test":"Probar","Remove":"Eliminar","No discovered chats yet":"Todavía no hay chats detectados","Ignored":"Ignorado","Approve":"Aprobar","Restore":"Restaurar","Ignore":"Ignorar","No bots configured":"Todavía no hay bots configurados","Select bot":"Seleccionar bot","No deliveries recorded yet":"Todavía no hay envíos registrados","chat":"chat","Could not load Telegram: ":"No se pudo cargar Telegram: ","Test message sent":"Mensaje de prueba enviado","Bot added":"Bot añadido","Route added":"Ruta añadida","Bot updated":"Bot actualizado","Route updated":"Ruta actualizada","Chat updated":"Chat actualizado","Chat approved":"Chat aprobado","Route removal checked":"Comprobación de eliminación finalizada","Send this message to":"¿Enviar este mensaje a","Route slug (lowercase)":"Identificador de ruta (minúsculas)","Route label":"Nombre de la ruta","Remove route":"Eliminar ruta","Existing Telegram messages will not be deleted.":"Los mensajes existentes en Telegram no se eliminarán.","This affects":"Esto afecta a","deliveries and":"envíos y","summaries. Continue?":"resúmenes. ¿Continuar?"}};
+const tx = english => (catalogs[locale] && catalogs[locale][english]) || english;
+for (const element of document.querySelectorAll('[data-i18n]')) {
+  element.textContent = tx(element.textContent.trim());
+}
+for (const element of document.querySelectorAll('[data-i18n-placeholder]')) {
+  element.placeholder = tx(element.getAttribute('data-i18n-placeholder'));
+}
+function localizeButtons() {
+  for (const button of document.querySelectorAll('.item button')) {
+    button.textContent = tx(button.textContent.trim());
+  }
+}
+
 const esc = value => String(value ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 let csrf = null;
 let state = { bots: [], routes: [], chats: [], deliveries: [] };
@@ -95,18 +117,19 @@ async function api(path, payload=null, method='GET') {
   if (!result.ok) throw Error(data.error || 'HTTP ' + result.status);
   return data;
 }
-function empty(text) { return '<p class="empty">' + esc(text) + '</p>'; }
-function pill(label, good=true) { return '<span class="pill ' + (good?'ok':'off') + '">' + esc(label) + '</span>'; }
+function empty(text) { return '<p class="empty">' + esc(tx(text)) + '</p>'; }
+function pill(label, good=true) { return '<span class="pill ' + (good?'ok':'off') + '">' + esc(tx(label)) + '</span>'; }
 function render() {
-  $('connection').textContent = 'Connected';
+  $('connection').textContent = tx('Connected');
   $('metrics').innerHTML = [
     [state.bots.length,'Bots'],[state.routes.filter(r=>r.enabled).length,'Active routes'],
     [state.chats.filter(c=>!c.ignored).length,'Discovered chats'],[state.deliveries.length,'Recent deliveries']
-  ].map(([n,label])=>'<div class="metric"><strong>'+esc(n)+'</strong><span>'+esc(label)+'</span></div>').join('');
-  $('routes').innerHTML = state.routes.length ? state.routes.map(r => '<article class="item"><div><div class="item-title">'+esc(r.label)+' <span class="pill">'+esc(r.slug)+'</span></div><div class="item-sub">'+esc(r.chat_type)+' · chat '+esc(r.chat_id)+' · '+(r.enabled?'Enabled':'Disabled')+'</div></div><div class="actions">'+pill(r.enabled?'On':'Off',r.enabled)+'<button data-action="toggle-route" data-id="'+esc(r.slug)+'">'+(r.enabled?'Disable':'Enable')+'</button><button data-action="test" data-id="'+esc(r.slug)+'">Test</button><button class="danger" data-action="delete-route" data-id="'+esc(r.slug)+'">Remove</button></div></article>').join('') : empty('No allowed routes configured');
+  ].map(([n,label])=>'<div class="metric"><strong>'+esc(n)+'</strong><span>'+esc(tx(label))+'</span></div>').join('');
+  $('routes').innerHTML = state.routes.length ? state.routes.map(r => '<article class="item"><div><div class="item-title">'+esc(r.label)+' <span class="pill">'+esc(r.slug)+'</span></div><div class="item-sub">'+esc(r.chat_type)+' · '+tx('chat')+' '+esc(r.chat_id)+' · '+(tx(r.enabled?'Enabled':'Disabled'))+'</div></div><div class="actions">'+pill(r.enabled?'On':'Off',r.enabled)+'<button data-action="toggle-route" data-id="'+esc(r.slug)+'">'+(r.enabled?'Disable':'Enable')+'</button><button data-action="test" data-id="'+esc(r.slug)+'">Test</button><button class="danger" data-action="delete-route" data-id="'+esc(r.slug)+'">Remove</button></div></article>').join('') : empty('No allowed routes configured');
   $('discovered').innerHTML = state.chats.length ? state.chats.map(c => '<article class="item"><div><div class="item-title">'+esc(c.title)+' '+(c.ignored?pill('Ignored',false):'')+'</div><div class="item-sub">'+esc(c.chat_type)+' · '+esc(c.chat_id)+'</div></div><div class="actions">'+(!c.ignored && c.present && c.bot_enabled ? '<button data-action="approve" data-bot="'+esc(c.bot_id)+'" data-chat="'+esc(c.chat_id)+'">Approve</button>':'')+'<button data-action="ignore" data-bot="'+esc(c.bot_id)+'" data-chat="'+esc(c.chat_id)+'">'+(c.ignored?'Restore':'Ignore')+'</button></div></article>').join('') : empty('No discovered chats yet');
   $('bots').innerHTML = state.bots.length ? state.bots.map(b => '<article class="item"><div><div class="item-title">'+esc(b.label)+' <span class="muted">@'+esc(b.username)+'</span></div><div class="item-sub">Bot '+esc(b.id)+'</div></div><div class="actions">'+pill(b.enabled?'Enabled':'Disabled',b.enabled)+'<button data-action="toggle-bot" data-id="'+esc(b.id)+'">'+(b.enabled?'Disable':'Enable')+'</button></div></article>').join('') : empty('No bots configured');
-  $('route-bot').innerHTML = '<option value="">Select bot</option>' + state.bots.filter(b=>b.enabled).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.label)+'</option>').join('');
+  $('route-bot').innerHTML = '<option value="">'+tx('Select bot')+'</option>' + state.bots.filter(b=>b.enabled).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.label)+'</option>').join('');
+  localizeButtons();
   $('activity').innerHTML = state.deliveries.length ? state.deliveries.map(d=>'<article class="item"><div><div class="item-title">'+esc(d.destination)+' · '+esc(d.operation)+'</div><div class="item-sub">'+esc(d.delivery_id)+'</div></div>'+pill(d.status,d.status==='accepted')+'</article>').join('') : empty('No deliveries recorded yet');
 }
 async function load() {
@@ -117,12 +140,12 @@ async function load() {
     state = {bots:bots.bots||[],routes:destinations.destinations||[],chats:chats.chats||[],deliveries:deliveries.deliveries||[]};
     render();
   } catch (error) {
-    $('connection').textContent = 'Unavailable';
-    note('Could not load Telegram: ' + error.message, true);
+    $('connection').textContent = tx('Unavailable');
+    note(tx('Could not load Telegram: ') + error.message, true);
   }
 }
 async function perform(fn, label) {
-  try { await fn(); note(label); await load(); }
+  try { await fn(); note(tx(label)); await load(); }
   catch(error) { note(error.message, true); }
 }
 document.querySelector('.tabs').addEventListener('click', e=>{
@@ -134,7 +157,7 @@ $('refresh').addEventListener('click',()=>load());
 $('send-cancel').addEventListener('click',()=> $('send-dialog').close());
 $('send-form').addEventListener('submit',e=>{
   e.preventDefault();const f=Object.fromEntries(new FormData(e.target));
-  if(!confirm('Send this message to '+f.destination+'?'))return;
+  if(!confirm(tx('Send this message to')+' '+f.destination+'?'))return;
   perform(()=>api('test-send',{...f,confirm:true},'POST'),'Test message sent');
   $('send-dialog').close();e.target.reset();
 });
@@ -164,16 +187,16 @@ document.body.addEventListener('click', e=>{
   }else if(action==='approve'){
     const bot=b.dataset.bot, chat=b.dataset.chat;
     const c=state.chats.find(x=>x.bot_id===bot&&x.chat_id===chat);
-    const slug=prompt('Route slug (lowercase)', c?.title?.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'chat');
+    const slug=prompt(tx('Route slug (lowercase)'), c?.title?.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'chat');
     if(!slug)return;
-    const label=prompt('Route label', c?.title||slug);
+    const label=prompt(tx('Route label'), c?.title||slug);
     if(!label)return;
     perform(()=>api('discovered/'+encodeURIComponent(bot)+'/'+encodeURIComponent(chat)+'/approve',{slug,label},'POST'),'Chat approved');
   }else if(action==='delete-route'){
-    if(!confirm('Remove route '+id+'? Existing Telegram messages will not be deleted.'))return;
+    if(!confirm(tx('Remove route')+' '+id+'? '+tx('Existing Telegram messages will not be deleted.')))return;
     perform(async()=>{
       const impact=await api('destinations/'+encodeURIComponent(id)+'/impact');
-      if(!confirm('This affects '+impact.delivery_count+' deliveries and '+impact.summary_count+' summaries. Continue?'))return;
+      if(!confirm(tx('This affects')+' '+impact.delivery_count+' '+tx('deliveries and')+' '+impact.summary_count+' '+tx('summaries. Continue?')))return;
       await api('destinations/'+encodeURIComponent(id)+'/delete',{expected_binding_id:impact.binding_id,confirm:true},'POST');
     },'Route removal checked');
   }
