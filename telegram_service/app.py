@@ -45,6 +45,14 @@ def _encryption_key() -> str:
     return secret
 
 
+def _discovery_gate_open() -> bool:
+    gate = os.environ.get("TELEGRAM_DISCOVERY_GATE_FILE", "")
+    if not gate:
+        return True  # Legacy deployment has no gate and stays unchanged.
+    file = Path(gate)
+    return file.is_file() and not file.is_symlink()
+
+
 def _discovery_enabled() -> bool:
     flag = os.environ.get("TELEGRAM_DISCOVERY_ENABLED", "1").strip()
     if flag not in {"0", "1"}:
@@ -73,6 +81,9 @@ def discovery_receiver() -> ChatDiscovery:
 async def poll_discovery_loop():
     while True:
         try:
+            if not _discovery_gate_open():
+                await asyncio.sleep(5)
+                continue
             await asyncio.to_thread(discovery_receiver().poll_once)
         except Exception:
             pass  # Polling is best effort; outbound delivery is independent.
