@@ -19,6 +19,20 @@ MCP tools: `list_destinations`, `telegram_send`,
 Modern Gateway uses the `telegramhub` Registry source; its public names,
 OAuth, approvals and grants remain Core responsibilities.
 
+## Formatted messages
+
+`telegram_send` and `telegram_upsert_summary` accept optional
+`parse_mode="HTML"`. When omitted, content stays literal plain text.
+Use Telegram Bot API HTML markup: `<b>bold</b>`, `<i>italic</i>`,
+`<a href="https://example.com">links</a>`, and `<code>code</code>`.
+Escape external text with HTML entities (`&amp;`, `&lt;`).
+
+Formatted sends split long messages at visible-text boundaries while
+closing and reopening tags. Summaries must fit a single 4096-unit message.
+Invalid markup and unsupported modes fail before delivery. Telegram may
+reject unsupported attributes or invalid links. The legacy `send_telegram`
+tool remains plain text only.
+
 ## Functionality
 
 - Store bot credentials encrypted; enable/disable bots and discover chats

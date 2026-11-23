@@ -57,18 +57,21 @@ async def list_destinations() -> dict:
     ]}
 
 
-async def telegram_send(destination: str, text: str, idempotency_key: str | None = None) -> dict:
-    """Publish plain text only to an enabled named Telegram destination."""
-    delivery = await asyncio.to_thread(delivery_service().send, destination, text, idempotency_key)
+async def telegram_send(destination: str, text: str, idempotency_key: str | None = None,
+                        parse_mode: str | None = None) -> dict:
+    """Publish plain text or Telegram HTML (parse_mode="HTML") to an enabled destination."""
+    delivery = await asyncio.to_thread(delivery_service().send, destination, text,
+                                       idempotency_key, parse_mode)
     # Physical chat identifiers belong to Admin history, not agent-facing MCP.
     return {key: value for key, value in delivery.items()
             if key not in {"bot_id", "chat_id", "logical_idempotency_key"}}
 
 
 async def telegram_upsert_summary(destination: str, key: str, text: str,
-                                  pin: bool = True) -> dict:
+                                  pin: bool = True, parse_mode: str | None = None) -> dict:
     """Create/update a daily summary, optionally pinning the existing message."""
-    return await asyncio.to_thread(delivery_service().summary, destination, key, text, pin)
+    return await asyncio.to_thread(delivery_service().summary, destination, key, text,
+                                   pin, parse_mode)
 
 
 async def send_telegram(message: str) -> str:
@@ -239,9 +242,10 @@ async def toggle_destination(request):
 
 async def test_send(request):
     data = await body(request)
-    if set(data) != {"destination", "text", "confirm"} or data["confirm"] is not True:
+    if not {"destination", "text", "confirm"} <= set(data) or set(data) - {"destination", "text", "confirm", "parse_mode"} or data["confirm"] is not True:
         raise DeliveryError("Explicit test confirmation required")
-    return await asyncio.to_thread(delivery_service().send, data["destination"], data["text"])
+    return await asyncio.to_thread(delivery_service().send, data["destination"],
+                                   data["text"], None, data.get("parse_mode"))
 
 
 async def summary_status(request):
