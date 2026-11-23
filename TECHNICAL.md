@@ -50,6 +50,22 @@ case. Manager exposes `/internal/summary/status`,
 diagnosing rights and retrying **pin only**. The API requests require the
 private service token; Manager also enforces its own browser CSRF/session.
 
+## Managed add-on migration path
+
+The repo also ships an isolated schema-v2 Compose/manifest and a guarded offline
+`scripts/adopt_existing.py` importer. It preserves the real legacy bot-token
+encryption key, Admin token, stored IDs, idempotency records and summaries.
+The new managed instance has no discovery polling until its
+`state/database/discovery.enabled` gate file exists. The old and new SQLite
+databases must never run as concurrent delivery owners. Manager's existing
+legacy URL must be repointed at `http://addon-telegramhub:8781` at cutover;
+the Switchboard Core production Compose now supports the
+`SWITCHBOARD_TELEGRAM_SERVICE_URL` override.
+
+For the exact staged install, freeze, backup, import, cutover, Manager routing,
+verification and rollback procedure see [MIGRATION.md](MIGRATION.md).
+**Repository support does not imply that production has been migrated.**
+
 ## Current production and deployment boundary
 
 As of 18 November 2026, Telegram is already running independently with its
