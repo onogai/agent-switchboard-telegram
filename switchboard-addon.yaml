@@ -1,6 +1,7 @@
 schema: 2
 id: telegramhub
 name: Telegram Delivery
+icon: assets/icon.svg
 compose: compose.addon.yaml
 service: telegramhub
 services: telegramhub
